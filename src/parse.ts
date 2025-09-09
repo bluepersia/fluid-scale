@@ -8,6 +8,9 @@ import { ParsedDocument } from "./parse.types";
 
 function parseCSS(document: DocumentClone): ParsedDocument {
   const breakpoints = new Set<number>();
+  let baselineWidth = 375;
+  let order = 0;
+  const fluidData = {};
 
   for (const sheet of document.styleSheets) {
     for (const rule of sheet.rules) {
@@ -17,7 +20,11 @@ function parseCSS(document: DocumentClone): ParsedDocument {
         const match = mediaRule.media.mediaText.match(
           /\(min-width:\s*(\d+)px\)/
         );
-        if (match) breakpoints.add(Number(match[1]));
+        if (match) {
+          const minWidth = Number(match[1]);
+          breakpoints.add(minWidth);
+          if (mediaRule.rules.length === 0) baselineWidth = minWidth;
+        }
       }
     }
   }
