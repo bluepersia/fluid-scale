@@ -20,6 +20,9 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
+  "ts-node": {
+    "esm": true
+  },
   "include": ["src", "src/parse.types.ts", "test/realistic-inputs"],
   "exclude": ["node_modules", "dist"]
 }
