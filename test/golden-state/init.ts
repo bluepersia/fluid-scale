@@ -1,7 +1,9 @@
-import { chromium } from "playwright";
+import { chromium, Page } from "playwright";
 import path from "path";
 import { fileURLToPath } from "url";
 import { cloneDocumentTemplate, FLUID_PROPERTY_NAMES } from "../../src/clone";
+import fs from "fs";
+import { DocumentClone } from "../../src/clone.types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,8 +15,11 @@ const realProjectsData = [
   },
 ];
 
+let documentFixtures: DocumentClone[] = [];
+let playwrightPages: Page[] = [];
+
 async function init() {
-  const playwrightPages = await Promise.all(
+  playwrightPages = await Promise.all(
     realProjectsData.map(async ({ htmlFilePath, addCss }) => {
       const finalPath = path.resolve(__dirname, htmlFilePath, "index.html");
       const browser = await chromium.launch();
@@ -47,9 +52,16 @@ async function init() {
     })
   );
 
-  (globalThis as any).playwrightPages = playwrightPages;
+  documentFixtures = realProjectsData.map((project) => {
+    const { htmlFilePath } = project;
+    const path = `./test/golden-state/${htmlFilePath}`;
+    const documentFixture = fs.readFileSync(`${path}/documentClone.json`, {
+      encoding: "utf-8",
+    });
+    return JSON.parse(documentFixture);
+  });
 }
 
 await init();
 
-export { init, realProjectsData };
+export { init, realProjectsData, documentFixtures, playwrightPages };

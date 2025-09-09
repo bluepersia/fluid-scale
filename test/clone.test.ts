@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { cloneDocumentTemplate, FLUID_PROPERTY_NAMES } from "../src/clone";
+import { playwrightPages } from "./golden-state/init";
 
 const expectedClone = {
   styleSheets: [
@@ -263,7 +264,7 @@ const expectedClone = {
 
 describe("cloneDocumentTemplate", () => {
   test("should clone the document", async () => {
-    const clonedDocument = await globalThis.playwrightPages[0].evaluate(
+    const clonedDocument = await playwrightPages[0].evaluate(
       async ({ cloneDocumentTemplate, FLUID_PROPERTY_NAMES }) => {
         const cloneDocument = new Function(
           "document",
