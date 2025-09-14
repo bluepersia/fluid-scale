@@ -12,7 +12,6 @@ class FluidProperty implements IFluidProperty {
   el: HTMLElement;
   metaData: FluidPropertyMetaData;
   fluidRanges: (FluidRange | null)[];
-
   constructor(
     el: HTMLElement,
     metaData: FluidPropertyMetaData,
