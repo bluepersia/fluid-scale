@@ -14,14 +14,8 @@ import {
 
 function computeValue(params: ComputationParams): (number | string)[][] {
   const { progress, minValue, maxValue, el, property } = params;
-  if (progress <= 0)
-    return minValue.map((group) =>
-      group.map((value) => computeFluidValue(value, el, property))
-    );
-  else if (progress >= 1)
-    return maxValue.map((group) =>
-      group.map((value) => computeFluidValue(value, el, property))
-    );
+  if (progress <= 0) return calculateFluidArray(minValue, el, property);
+  else if (progress >= 1) return calculateFluidArray(maxValue, el, property);
   else {
     return interpolateFluidValue(params);
   }
@@ -131,6 +125,31 @@ function convertToPx(params: ConvertToPxParams): number {
   throw Error(`Unsupported unit ${unit}`);
 }
 
+function computeGridValue(
+  el: HTMLElement,
+  property: string,
+  value: string
+): number[] {
+  // Clone the element
+  const clone = el.cloneNode(true) as HTMLElement;
+
+  clone.style.visibility = "hidden";
+  clone.style.position = "absolute";
+  clone.style[property as any] = value;
+
+  document.body.appendChild(clone);
+
+  const gridTemplate = window
+    .getComputedStyle(clone)
+    .getPropertyValue(property);
+
+  const gridTemplateArray = gridTemplate.split(" ");
+  const gridTemplateValues = gridTemplateArray.map((value) => {
+    return parseFloat(value);
+  });
+  return gridTemplateValues;
+}
+
 function measureKeywordValue(
   el: HTMLElement,
   property: string,
@@ -161,12 +180,9 @@ function interpolateFluidValue(
   params: ComputationParams
 ): (number | string)[][] {
   const { minValue, maxValue, progress, el, property } = params;
-  const minValuePxs = minValue.map((group) =>
-    group.map((value) => computeFluidValue(value, el, property))
-  );
-  const maxValuePxs = maxValue.map((group) =>
-    group.map((value) => computeFluidValue(value, el, property))
-  );
+  const minValuePxs = calculateFluidArray(minValue, el, property);
+  const maxValuePxs = calculateFluidArray(maxValue, el, property);
+
   return minValuePxs.map((group, groupIndex) =>
     group.map((value, valueIndex) => {
       if (typeof value === "string") return value;
@@ -178,6 +194,20 @@ function interpolateFluidValue(
       if (maxValue) return value + (maxValue - value) * progress;
       else return value;
     })
+  );
+}
+
+function calculateFluidArray(
+  fluidValues: FluidValueBase[][],
+  el: HTMLElement,
+  property: string
+): (number | string)[][] {
+  const isGrid = property.startsWith("grid-");
+
+  return fluidValues.map((group) =>
+    isGrid
+      ? computeGridValue(el, property, group.join(" "))
+      : group.map((value) => computeFluidValue(value, el, property))
   );
 }
 
