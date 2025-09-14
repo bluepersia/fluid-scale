@@ -118,3 +118,11 @@ function cloneMediaRule(mediaRule: CSSMediaRule): MediaRuleClone | null {
   }
   return null;
 }
+
+export {
+  cloneDocument,
+  filterAccessibleStyleSheets,
+  cloneStyleSheet,
+  cloneStyleRule,
+  cloneMediaRule,
+};
