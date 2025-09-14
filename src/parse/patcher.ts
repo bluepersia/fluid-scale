@@ -1,4 +1,10 @@
-import { FluidRange, FluidValue } from "./index.types";
+import {
+  FluidFunctionValue,
+  FluidRange,
+  FluidValue,
+  FluidValueBase,
+  FunctionType,
+} from "./index.types";
 import {
   ApplyNewFluidRangeParams,
   DocStateResult,
@@ -111,8 +117,8 @@ function processMatchingRule(
 function makeNewFluidRange(params: NewFluidRangeParams): FluidRange {
   const { minValue, maxValue, breakpoints, batchWidth, nextRuleBatch } = params;
   return {
-    minValue: parseFluidValue(minValue),
-    maxValue: parseFluidValue(maxValue),
+    minValue: parse3DFluidValues(minValue),
+    maxValue: parse3DFluidValues(maxValue),
     minIndex: breakpoints.indexOf(batchWidth),
     maxIndex: breakpoints.indexOf(nextRuleBatch.width),
   };
@@ -152,10 +158,66 @@ function splitSelector(selector: string): string[] {
   return selector.split(",").map((s) => s.trim());
 }
 
-function parseFluidValue(value: string): FluidValue {
+function parse3DFluidValues(value: string): FluidValueBase[][] {
+  let depth = 0;
+  let values: FluidValueBase[][] = [];
+  let currentValue = "";
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+    currentValue += char;
+    if (char === "(") depth++;
+    else if (char === ")") depth--;
+    else if (char === "," && depth === 0) {
+      values.push(parse2DFluidValues(currentValue));
+      currentValue = "";
+    } else if (char === " ") continue;
+  }
+  values.push(parse2DFluidValues(currentValue));
+  return values;
+}
+
+function parse2DFluidValues(value: string): FluidValueBase[] {
+  let depth = 0;
+  let currentValue = "";
+  let values: FluidValueBase[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+    currentValue += char;
+    if (char === "(") depth++;
+    else if (char === ")") depth--;
+    else if (char === " " && depth === 0) {
+      values.push(parseFluidValue(currentValue));
+      currentValue = "";
+    } else if (char === " ") continue;
+  }
+  values.push(parseFluidValue(currentValue));
+  return values;
+}
+
+function parseFluidValue(value: string): FluidValueBase {
+  const funcMatch = value.match(/^(min|max|minmax|clamp|calc)\(/);
+
+  if (funcMatch) {
+    const funcName = funcMatch[1] as FunctionType;
+    let depth = 0;
+    let currentValue = "";
+    let values: FluidValueBase[] = [];
+    for (let i = 0; i < value.length; i++) {
+      const char = value[i];
+      if (char === "(") depth++;
+      else if (char === ")") depth--;
+      if (depth >= 1) currentValue += char;
+      if (char === ",") {
+        values.push(parseFluidValue(currentValue));
+        currentValue = "";
+      }
+    }
+    values.push(parseFluidValue(currentValue));
+    return { type: funcName, values } as FluidFunctionValue;
+  }
   const number = parseFloat(value);
   const unit = getUnit(value);
-  return { value: number, unit };
+  return { value: number, unit } as FluidValue;
 }
 
 function getUnit(value: string): string {
