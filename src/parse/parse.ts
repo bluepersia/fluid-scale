@@ -4,7 +4,16 @@ import {
   StyleRuleClone,
   StyleSheetClone,
 } from "./cloner.types";
-import { ParseCSSResult, RuleBatch, RuleBatchState } from "./parse.types";
+import { FluidData } from "./index.types";
+import {
+  DocStateResult,
+  ParseCSSResult,
+  RuleBatch,
+  RuleBatchState,
+  StyleSheetParams,
+  StyleSheetsParams,
+} from "./parse.types";
+import { processRuleBatches } from "./patcher";
 
 const STYLE_RULE_TYPE = 1;
 const MEDIA_RULE_TYPE = 4;
@@ -12,42 +21,82 @@ const MEDIA_RULE_TYPE = 4;
 export { STYLE_RULE_TYPE, MEDIA_RULE_TYPE };
 
 function parseCSS(doc: DocumentClone): ParseCSSResult {
-  const breakpoints = new Set<number>();
+  const { breakpoints, globalBaselineWidth } = prepareDocument(doc);
+
+  let fluidData: FluidData = {};
+  let order = 0;
+
+  const { newFluidData, newOrder } = parseStyleSheets({
+    styleSheets: doc.styleSheets,
+    globalBaselineWidth,
+    fluidData,
+    order,
+    breakpoints,
+  });
+
+  fluidData = newFluidData;
+  order = newOrder;
+
+  return { breakpoints, fluidData };
+}
+
+function prepareDocument(doc: DocumentClone): {
+  breakpoints: number[];
+  globalBaselineWidth: number;
+} {
+  const breakpointsSet = new Set<number>();
   let globalBaselineWidth = 375;
 
   for (const styleSheet of doc.styleSheets) {
     for (const rule of styleSheet.cssRules) {
       if (rule.type === MEDIA_RULE_TYPE) {
         const { minWidth, cssRules } = rule as MediaRuleClone;
-        breakpoints.add(minWidth);
+        breakpointsSet.add(minWidth);
         if (cssRules.length === 0) globalBaselineWidth = minWidth;
       }
     }
   }
 
-  parseStyleSheets(doc.styleSheets, globalBaselineWidth);
-
-  return { breakpoints: Array.from(breakpoints) };
+  return { breakpoints: Array.from(breakpointsSet), globalBaselineWidth };
 }
 
-function parseStyleSheets(
-  styleSheets: StyleSheetClone[],
-  globalBaselineWidth: number
-): void {
+function parseStyleSheets(params: StyleSheetsParams): DocStateResult {
+  const { styleSheets } = params;
+  let { fluidData, order } = params;
   for (const styleSheet of styleSheets) {
-    parseStyleSheet(styleSheet, globalBaselineWidth);
+    const { newFluidData, newOrder } = parseStyleSheet({
+      styleSheet,
+      ...params,
+    });
+    fluidData = newFluidData;
+    order = newOrder;
   }
+  return {
+    newFluidData: fluidData,
+    newOrder: order,
+  };
 }
 
-function parseStyleSheet(
-  styleSheet: StyleSheetClone,
-  globalBaselineWidth: number
-): void {
+function parseStyleSheet(params: StyleSheetParams): DocStateResult {
+  const { styleSheet, globalBaselineWidth } = params;
+  let { fluidData, order } = params;
+
   const baselineWidth = getStylesheetBaselineWidth(
     styleSheet,
     globalBaselineWidth
   );
   const ruleBatches = batchStyleSheet(styleSheet, baselineWidth);
+  const { newFluidData, newOrder } = processRuleBatches({
+    ruleBatches,
+    ...params,
+  });
+  fluidData = newFluidData;
+  order = newOrder;
+
+  return {
+    newFluidData: fluidData,
+    newOrder: order,
+  };
 }
 
 function getStylesheetBaselineWidth(
