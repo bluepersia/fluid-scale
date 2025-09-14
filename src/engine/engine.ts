@@ -1,18 +1,8 @@
 import { cloneDocument } from "../parse/cloner";
-import {
-  FluidData,
-  FluidPropertyMetaData,
-  FluidRange,
-} from "../parse/index.types";
+import { FluidData, FluidRange } from "../parse/index.types";
 import { parseCSS } from "../parse/parse";
-import {
-  AppliedFluidPropertyState,
-  ComputationParams,
-  ConvertToPxParams,
-  FluidPropertyState,
-  GlobalState,
-  IFluidProperty,
-} from "./engine.types";
+import { FluidPropertyStateUpdate, GlobalState } from "./engine.types";
+import { FluidProperty } from "./fluidProperty";
 
 let state: GlobalState;
 resetState();
@@ -26,17 +16,21 @@ function resetState() {
     pendingHiddenElements: new Set(),
     windowSize: [400, 400],
     currentBreakpointIndex: 0,
+    appliedStates: new Map(),
   };
 }
 
 const intersectionObserver = new IntersectionObserver((entries) => {
   for (const entry of entries) {
+    const el = entry.target as HTMLElement;
     if (entry.isIntersecting) {
-      addActiveElement(entry.target as HTMLElement);
-      removePendingHiddenElement(entry.target as HTMLElement);
+      addActiveElement(el);
+      removePendingHiddenElement(el);
+      el.isVisible = true;
     } else {
-      addPendingHiddenElement(entry.target as HTMLElement);
-      removeActiveElement(entry.target as HTMLElement);
+      addPendingHiddenElement(el);
+      removeActiveElement(el);
+      el.isVisible = false;
     }
   }
 });
@@ -86,6 +80,14 @@ function updateWindowSize(): void {
   state.windowSize = [window.innerWidth, window.innerHeight];
 }
 
+function updateAppliedState(
+  el: HTMLElement,
+  property: string,
+  stateUpdate: FluidPropertyStateUpdate
+): void {
+  state.appliedStates.set([el, property], stateUpdate);
+}
+
 function init(): void {
   const doc = cloneDocument(document);
   const { breakpoints, fluidData } = parseCSS(doc);
@@ -95,11 +97,62 @@ function init(): void {
 function update(): void {
   updateWindowSize();
   updateCurrentBreakpointIndex();
+
+  for (const el of state.pendingHiddenElements) {
+    updateElement(el); //Flushes
+  }
+
+  for (const el of state.activeElements) updateElement(el);
+}
+
+function updateElement(el: HTMLElement): void {
+  if (!el.isConnected) {
+    removeActiveElement(el);
+    removePendingHiddenElement(el);
+    state.allElements.delete(el);
+    return;
+  }
+
+  const updatedStates = updateFluidProperties(el);
+  el.updateWidth = el.isVisible ? getState().windowSize[0] : undefined;
+
+  for (const [property, stateUpdate] of updatedStates.entries()) {
+    el.style.setProperty(property, stateUpdate.value);
+
+    if (stateUpdate.fluidProperty) {
+      updateAppliedState(el, property, stateUpdate);
+    }
+  }
+}
+
+function updateFluidProperties(
+  el: HTMLElement
+): Map<string, FluidPropertyStateUpdate> {
+  const updatedStates = new Map<string, FluidPropertyStateUpdate>();
+
+  if (el.isVisible) {
+    const { appliedStates } = getState();
+    for (const fluidProperty of el.fluidProperties || []) {
+      const appliedState = appliedStates.get([
+        el,
+        fluidProperty.metaData.property,
+      ]);
+      if (appliedState && fluidProperty.metaData.order < appliedState.order)
+        continue;
+
+      const stateUpdate = fluidProperty.update(appliedState);
+      if (stateUpdate)
+        updatedStates.set(fluidProperty.metaData.property, stateUpdate);
+    }
+  }
+
+  return updatedStates;
 }
 
 function addElements(elements: HTMLElement[]) {
   for (const el of elements) {
     if (state.allElements.has(el)) continue;
+    el.fluidProperties = [];
 
     const classes = Array.from(el.classList);
     for (const klass of classes) {
@@ -150,184 +203,4 @@ function processAnchorMatch(el: HTMLElement, anchor: string): FluidProperty[] {
   return newFluidProperties;
 }
 
-class FluidProperty implements IFluidProperty {
-  el: HTMLElement;
-  metaData: FluidPropertyMetaData;
-  fluidRanges: (FluidRange | null)[];
-  state: FluidPropertyState;
-
-  constructor(
-    el: HTMLElement,
-    metaData: FluidPropertyMetaData,
-    fluidRanges: (FluidRange | null)[]
-  ) {
-    this.el = el;
-    this.metaData = metaData;
-    this.fluidRanges = fluidRanges;
-
-    if (!el.fluidPropertyStates) {
-      el.fluidPropertyStates = {};
-    }
-
-    if (!el.fluidPropertyStates[this.metaData.property]) {
-      el.fluidPropertyStates[this.metaData.property] = newFluidPropertyState(
-        this.metaData.property
-      );
-    }
-
-    this.state = el.fluidPropertyStates[this.metaData.property];
-  }
-
-  update(): void {
-    if (isLowerOrder(this.metaData.order, this.state.order)) return;
-
-    if (repeatLastComputedValue(this.state.applied, this.metaData.order)) {
-      this.state.value = this.state.applied!.value;
-      this.state.fluidProperty = this.state.applied!.fluidProperty;
-      return;
-    }
-
-    const value = computeValueAsString(
-      this.fluidRanges,
-      this.el,
-      this.metaData.property
-    );
-
-    this.state.order = this.metaData.order;
-    this.state.value = value;
-    this.state.fluidProperty = this;
-  }
-}
-
-function newFluidPropertyState(property: string): FluidPropertyState {
-  return {
-    order: -1,
-    value: "",
-    property,
-  };
-}
-function isLowerOrder(currentOrder: number, otherOrder: number): boolean {
-  return currentOrder < otherOrder;
-}
-
-function repeatLastComputedValue(
-  applied:
-    | Omit<AppliedFluidPropertyState, "value" | "fluidProperty">
-    | undefined,
-  order: number
-): boolean {
-  if (!applied) return false;
-
-  if (order > applied.order) return false;
-
-  const {
-    windowSize: [windowWidth],
-  } = getState();
-  if (Math.abs(applied.windowWidth - windowWidth) < 1) return true;
-
-  return false;
-}
-
-function computeValueAsString(
-  fluidRanges: (FluidRange | null)[],
-  el: HTMLElement,
-  property: string
-): string {
-  const state = makeComputationParams(fluidRanges, el, property);
-
-  if (!state) return "";
-
-  const value = computeValue(state);
-
-  if (typeof value === "number") return `${value}px`;
-  else return value;
-}
-
-function makeComputationParams(
-  fluidRanges: (FluidRange | null)[],
-  el: HTMLElement,
-  property: string
-): ComputationParams | null {
-  const {
-    currentBreakpointIndex,
-    windowSize: [windowWidth],
-    breakpoints,
-  } = getState();
-
-  const currentFluidRange = fluidRanges.find(
-    (range) =>
-      range &&
-      currentBreakpointIndex >= range.minIndex &&
-      currentBreakpointIndex <= range.maxIndex
-  );
-
-  if (!currentFluidRange) return null;
-
-  const minBreakpoint = breakpoints[currentFluidRange.minIndex];
-  const maxBreakpoint = breakpoints[currentFluidRange.maxIndex];
-
-  const progress =
-    (windowWidth - minBreakpoint) / (maxBreakpoint - minBreakpoint);
-
-  return { ...currentFluidRange, progress, el, property };
-}
-
-function computeValue(params: ComputationParams): number {
-  const { progress, minValue, maxValue } = params;
-  if (progress <= 0)
-    return convertToPx({
-      value: minValue.value,
-      unit: minValue.unit,
-      ...params,
-    });
-  else if (progress >= 1)
-    return convertToPx({
-      value: maxValue.value,
-      unit: maxValue.unit,
-      ...params,
-    });
-  else {
-    return interpolateFluidValue(params);
-  }
-}
-
-function convertToPx(params: ConvertToPxParams): number {
-  const { value, unit, el, property } = params;
-  const { windowSize } = getState();
-  switch (unit) {
-    case "px":
-      return value;
-    case "em": {
-      if (property === "font-size") {
-        const parent = el.parentElement || document.documentElement;
-        return value * parseFloat(getComputedStyle(parent).fontSize);
-      } else {
-        return value * parseFloat(getComputedStyle(el).fontSize);
-      }
-    }
-    case "rem":
-      return (
-        value * parseFloat(getComputedStyle(document.documentElement).fontSize)
-      );
-    case "vw":
-      return (value * windowSize[0]) / 100;
-    case "vh":
-      return (value * windowSize[1]) / 100;
-  }
-  throw Error(`Unsupported unit ${unit}`);
-}
-
-function interpolateFluidValue(params: ComputationParams): number {
-  const { minValue, maxValue, progress } = params;
-  const minValuePx = convertToPx({
-    value: minValue.value,
-    unit: minValue.unit,
-    ...params,
-  });
-  const maxValuePx = convertToPx({
-    value: maxValue.value,
-    unit: maxValue.unit,
-    ...params,
-  });
-  return minValuePx + (maxValuePx - minValuePx) * progress;
-}
+export { init, update, addElements, getState };
