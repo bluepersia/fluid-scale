@@ -131,17 +131,13 @@ function computeGridValue(
   value: string
 ): number[] {
   // Clone the element
-  const clone = el.cloneNode(true) as HTMLElement;
-
-  clone.style.visibility = "hidden";
-  clone.style.position = "absolute";
-  clone.style[property as any] = value;
-
-  document.body.appendChild(clone);
+  const clone = cloneElForMeasurement(el, property, value);
 
   const gridTemplate = window
     .getComputedStyle(clone)
     .getPropertyValue(property);
+
+  document.body.removeChild(clone);
 
   const gridTemplateArray = gridTemplate.split(" ");
   const gridTemplateValues = gridTemplateArray.map((value) => {
@@ -157,16 +153,7 @@ function measureKeywordValue(
 ): number | string {
   if (property.startsWith("margin-") && keyword === "auto") return "auto";
 
-  // Clone the element
-  const clone = el.cloneNode(true) as HTMLElement;
-
-  // Make sure it's not visible / in the DOM flow
-  clone.style.visibility = "hidden";
-  clone.style.position = "absolute";
-  clone.style[property as any] = keyword;
-
-  // Append to body to allow measurement
-  document.body.appendChild(clone);
+  const clone = cloneElForMeasurement(el, property, keyword);
 
   const px = window.getComputedStyle(clone).getPropertyValue(property);
 
@@ -174,6 +161,18 @@ function measureKeywordValue(
   document.body.removeChild(clone);
 
   return parseFloat(px) || px;
+}
+
+function cloneElForMeasurement(
+  el: HTMLElement,
+  property: string,
+  value: string
+): HTMLElement {
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.style.visibility = "hidden";
+  clone.style.position = "absolute";
+  clone.style.setProperty(property, value);
+  return clone;
 }
 
 function interpolateFluidValue(
