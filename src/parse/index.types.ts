@@ -1,14 +1,24 @@
 type FluidRange = {
-  minValue: FluidValue;
-  maxValue: FluidValue;
+  minValue: FluidValueBase[][];
+  maxValue: FluidValueBase[][];
   minIndex: number;
   maxIndex: number;
 };
 
-type FluidValue = {
-  value: number;
-  unit: string;
+type FluidValueBase = {};
+type FluidValue = FluidValueBase & {
+  value: number | string;
+  unit?: string;
 };
+
+type FluidFunctionValue = FluidValueBase & {
+  type: FunctionType;
+  values: (FluidValueBase | ArithemticOperator)[];
+};
+
+type ArithemticOperator = "+" | "-" | "*" | "/";
+
+type FunctionType = "calc" | "min" | "max" | "clamp" | "minmax";
 
 type FluidData = {
   [anchor: string]: {
@@ -26,4 +36,13 @@ type FluidPropertyMetaData = {
   property: string;
 };
 
-export { FluidRange, FluidValue, FluidData, FluidPropertyMetaData };
+export {
+  FluidRange,
+  FluidValue,
+  FluidData,
+  FluidPropertyMetaData,
+  FluidFunctionValue,
+  FluidValueBase,
+  FunctionType,
+  ArithemticOperator,
+};
