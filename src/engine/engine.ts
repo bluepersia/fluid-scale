@@ -5,15 +5,26 @@ import {
   FluidRange,
 } from "../parse/index.types";
 import { parseCSS } from "../parse/parse";
-import { GlobalState, IFluidProperty } from "./engine.types";
+import {
+  AppliedFluidPropertyState,
+  FluidPropertyState,
+  GlobalState,
+  IFluidProperty,
+} from "./engine.types";
 
-const state: GlobalState = {
-  breakpoints: [],
-  fluidData: {},
-  allElements: new Set(),
-  activeElements: new Set(),
-  pendingHiddenElements: new Set(),
-};
+let state: GlobalState;
+resetState();
+
+function resetState() {
+  state = {
+    breakpoints: [],
+    fluidData: {},
+    allElements: new Set(),
+    activeElements: new Set(),
+    pendingHiddenElements: new Set(),
+    windowWidth: 400,
+  };
+}
 
 const intersectionObserver = new IntersectionObserver((entries) => {
   for (const entry of entries) {
@@ -107,6 +118,7 @@ class FluidProperty implements IFluidProperty {
   el: HTMLElement;
   metaData: FluidPropertyMetaData;
   fluidRanges: FluidRange[];
+  state: FluidPropertyState;
 
   constructor(
     el: HTMLElement,
@@ -116,5 +128,56 @@ class FluidProperty implements IFluidProperty {
     this.el = el;
     this.metaData = metaData;
     this.fluidRanges = fluidRanges;
+
+    if (!el.fluidPropertyStates) {
+      el.fluidPropertyStates = {};
+    }
+
+    if (!el.fluidPropertyStates[this.metaData.property]) {
+      el.fluidPropertyStates[this.metaData.property] = newFluidPropertyState(
+        this.metaData.property
+      );
+    }
+
+    this.state = el.fluidPropertyStates[this.metaData.property];
   }
+
+  update(): void {
+    if (isLowerOrder(this.metaData.order, this.state.order)) return;
+
+    if (repeatLastComputedValue(this.state.applied, this.metaData.order)) {
+      this.state.value = this.state.applied!.value;
+      this.state.fluidProperty = this.state.applied!.fluidProperty;
+      return;
+    }
+
+    this.state.order = this.metaData.order;
+  }
+}
+
+function newFluidPropertyState(property: string): FluidPropertyState {
+  return {
+    order: -1,
+    value: "",
+    property,
+  };
+}
+function isLowerOrder(currentOrder: number, otherOrder: number): boolean {
+  return currentOrder < otherOrder;
+}
+
+function repeatLastComputedValue(
+  applied:
+    | Omit<AppliedFluidPropertyState, "value" | "fluidProperty">
+    | undefined,
+  order: number
+): boolean {
+  if (!applied) return false;
+
+  if (order > applied.order) return false;
+
+  const { windowWidth } = getState();
+  if (Math.abs(applied.windowWidth - windowWidth) < 1) return true;
+
+  return false;
 }
