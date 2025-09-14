@@ -175,3 +175,5 @@ function newMediaRuleBatch(mediaRule: MediaRuleClone): RuleBatch {
     isMediaQuery: true,
   };
 }
+
+export { parseCSS };
