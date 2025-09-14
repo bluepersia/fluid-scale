@@ -1,7 +1,9 @@
 import { FluidPropertyMetaData, FluidRange } from "../parse/index.types";
-import { computeValueAsString, repeatLastComputedValue } from "./computation";
+import { computeValue } from "./computation";
+import { getState } from "./engine";
 import {
   AppliedFluidPropertyState,
+  ComputationParams,
   FluidPropertyStateUpdate,
   IFluidProperty,
 } from "./engine.types";
@@ -50,4 +52,72 @@ class FluidProperty implements IFluidProperty {
   }
 }
 
-export { FluidProperty };
+function repeatLastComputedValue(
+  appliedOrder: number | undefined,
+  order: number,
+  elUpdateWidth: number | undefined
+): boolean {
+  if (!appliedOrder) return false;
+
+  if (order > appliedOrder) return false;
+
+  if (!elUpdateWidth) return false;
+
+  return Math.abs(elUpdateWidth - getState().windowSize[0]) < 1;
+}
+
+function computeValueAsString(
+  fluidRanges: (FluidRange | null)[],
+  el: HTMLElement,
+  property: string
+): string {
+  const state = makeComputationParams(fluidRanges, el, property);
+
+  if (!state) return "";
+
+  const value = computeValue(state);
+
+  return value
+    .map((group) =>
+      group
+        .map((value) => (typeof value === "number" ? `${value}px` : value))
+        .join(" ")
+    )
+    .join(",");
+}
+
+function makeComputationParams(
+  fluidRanges: (FluidRange | null)[],
+  el: HTMLElement,
+  property: string
+): ComputationParams | null {
+  const {
+    currentBreakpointIndex,
+    windowSize: [windowWidth],
+    breakpoints,
+  } = getState();
+
+  const currentFluidRange = fluidRanges.find(
+    (range) =>
+      range &&
+      currentBreakpointIndex >= range.minIndex &&
+      currentBreakpointIndex <= range.maxIndex
+  );
+
+  if (!currentFluidRange) return null;
+
+  const minBreakpoint = breakpoints[currentFluidRange.minIndex];
+  const maxBreakpoint = breakpoints[currentFluidRange.maxIndex];
+
+  const progress =
+    (windowWidth - minBreakpoint) / (maxBreakpoint - minBreakpoint);
+
+  return { ...currentFluidRange, progress, el, property };
+}
+
+export {
+  FluidProperty,
+  computeValueAsString,
+  repeatLastComputedValue,
+  makeComputationParams,
+};
