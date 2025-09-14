@@ -2,6 +2,7 @@ import {
   FluidData,
   FluidPropertyMetaData,
   FluidRange,
+  FluidValue,
 } from "../parse/index.types";
 
 type GlobalState = {
@@ -10,13 +11,14 @@ type GlobalState = {
   allElements: Set<HTMLElement>;
   activeElements: Set<HTMLElement>;
   pendingHiddenElements: Set<HTMLElement>;
-  windowWidth: number;
+  windowSize: [number, number];
+  currentBreakpointIndex: number;
 };
 
 type IFluidProperty = {
   el: HTMLElement;
   metaData: FluidPropertyMetaData;
-  fluidRanges: FluidRange[];
+  fluidRanges: (FluidRange | null)[];
   state: FluidPropertyState;
 };
 
@@ -44,9 +46,24 @@ declare global {
   }
 }
 
+type ComputationParams = {
+  minValue: FluidValue;
+  maxValue: FluidValue;
+  progress: number;
+  el: HTMLElement;
+  property: string;
+};
+
+type ConvertToPxParams = Pick<ComputationParams, "el" | "property"> & {
+  value: number;
+  unit: string;
+};
+
 export {
   GlobalState,
   IFluidProperty,
   FluidPropertyState,
   AppliedFluidPropertyState,
+  ConvertToPxParams,
+  ComputationParams,
 };

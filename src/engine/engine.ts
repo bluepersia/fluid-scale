@@ -7,6 +7,8 @@ import {
 import { parseCSS } from "../parse/parse";
 import {
   AppliedFluidPropertyState,
+  ComputationParams,
+  ConvertToPxParams,
   FluidPropertyState,
   GlobalState,
   IFluidProperty,
@@ -22,7 +24,8 @@ function resetState() {
     allElements: new Set(),
     activeElements: new Set(),
     pendingHiddenElements: new Set(),
-    windowWidth: 400,
+    windowSize: [400, 400],
+    currentBreakpointIndex: 0,
   };
 }
 
@@ -63,10 +66,35 @@ function removePendingHiddenElement(el: HTMLElement) {
   state.pendingHiddenElements.delete(el);
 }
 
+function updateCurrentBreakpointIndex(): void {
+  const { windowSize } = state;
+  const [windowWidth] = windowSize;
+
+  let currentBreakpointIndex = 0;
+  for (let i = state.breakpoints.length - 1; i >= 0; i--) {
+    const breakpoint = state.breakpoints[i];
+    if (windowWidth >= breakpoint) {
+      currentBreakpointIndex = i;
+      break;
+    }
+  }
+
+  state.currentBreakpointIndex = currentBreakpointIndex;
+}
+
+function updateWindowSize(): void {
+  state.windowSize = [window.innerWidth, window.innerHeight];
+}
+
 function init(): void {
   const doc = cloneDocument(document);
   const { breakpoints, fluidData } = parseCSS(doc);
   initEngineState(breakpoints, fluidData);
+}
+
+function update(): void {
+  updateWindowSize();
+  updateCurrentBreakpointIndex();
 }
 
 function addElements(elements: HTMLElement[]) {
@@ -103,11 +131,19 @@ function processAnchorMatch(el: HTMLElement, anchor: string): FluidProperty[] {
 
   const newFluidProperties: FluidProperty[] = [];
 
+  const { breakpoints } = getState();
+
   for (const [selector, properties] of Object.entries(anchorData)) {
     if (!el.matches(selector)) continue;
 
     for (const { metaData, fluidRanges } of Object.values(properties)) {
-      newFluidProperties.push(new FluidProperty(el, metaData, fluidRanges));
+      const fluidRangesSorted: (FluidRange | null)[] = breakpoints.map(
+        (bp) => fluidRanges.find(({ minIndex }) => bp === minIndex) || null
+      );
+
+      newFluidProperties.push(
+        new FluidProperty(el, metaData, fluidRangesSorted)
+      );
     }
   }
 
@@ -117,13 +153,13 @@ function processAnchorMatch(el: HTMLElement, anchor: string): FluidProperty[] {
 class FluidProperty implements IFluidProperty {
   el: HTMLElement;
   metaData: FluidPropertyMetaData;
-  fluidRanges: FluidRange[];
+  fluidRanges: (FluidRange | null)[];
   state: FluidPropertyState;
 
   constructor(
     el: HTMLElement,
     metaData: FluidPropertyMetaData,
-    fluidRanges: FluidRange[]
+    fluidRanges: (FluidRange | null)[]
   ) {
     this.el = el;
     this.metaData = metaData;
@@ -151,7 +187,15 @@ class FluidProperty implements IFluidProperty {
       return;
     }
 
+    const value = computeValueAsString(
+      this.fluidRanges,
+      this.el,
+      this.metaData.property
+    );
+
     this.state.order = this.metaData.order;
+    this.state.value = value;
+    this.state.fluidProperty = this;
   }
 }
 
@@ -176,8 +220,114 @@ function repeatLastComputedValue(
 
   if (order > applied.order) return false;
 
-  const { windowWidth } = getState();
+  const {
+    windowSize: [windowWidth],
+  } = getState();
   if (Math.abs(applied.windowWidth - windowWidth) < 1) return true;
 
   return false;
+}
+
+function computeValueAsString(
+  fluidRanges: (FluidRange | null)[],
+  el: HTMLElement,
+  property: string
+): string {
+  const state = makeComputationParams(fluidRanges, el, property);
+
+  if (!state) return "";
+
+  const value = computeValue(state);
+
+  if (typeof value === "number") return `${value}px`;
+  else return value;
+}
+
+function makeComputationParams(
+  fluidRanges: (FluidRange | null)[],
+  el: HTMLElement,
+  property: string
+): ComputationParams | null {
+  const {
+    currentBreakpointIndex,
+    windowSize: [windowWidth],
+    breakpoints,
+  } = getState();
+
+  const currentFluidRange = fluidRanges.find(
+    (range) =>
+      range &&
+      currentBreakpointIndex >= range.minIndex &&
+      currentBreakpointIndex <= range.maxIndex
+  );
+
+  if (!currentFluidRange) return null;
+
+  const minBreakpoint = breakpoints[currentFluidRange.minIndex];
+  const maxBreakpoint = breakpoints[currentFluidRange.maxIndex];
+
+  const progress =
+    (windowWidth - minBreakpoint) / (maxBreakpoint - minBreakpoint);
+
+  return { ...currentFluidRange, progress, el, property };
+}
+
+function computeValue(params: ComputationParams): number {
+  const { progress, minValue, maxValue } = params;
+  if (progress <= 0)
+    return convertToPx({
+      value: minValue.value,
+      unit: minValue.unit,
+      ...params,
+    });
+  else if (progress >= 1)
+    return convertToPx({
+      value: maxValue.value,
+      unit: maxValue.unit,
+      ...params,
+    });
+  else {
+    return interpolateFluidValue(params);
+  }
+}
+
+function convertToPx(params: ConvertToPxParams): number {
+  const { value, unit, el, property } = params;
+  const { windowSize } = getState();
+  switch (unit) {
+    case "px":
+      return value;
+    case "em": {
+      if (property === "font-size") {
+        const parent = el.parentElement || document.documentElement;
+        return value * parseFloat(getComputedStyle(parent).fontSize);
+      } else {
+        return value * parseFloat(getComputedStyle(el).fontSize);
+      }
+    }
+    case "rem":
+      return (
+        value * parseFloat(getComputedStyle(document.documentElement).fontSize)
+      );
+    case "vw":
+      return (value * windowSize[0]) / 100;
+    case "vh":
+      return (value * windowSize[1]) / 100;
+  }
+  throw Error(`Unsupported unit ${unit}`);
+}
+
+function interpolateFluidValue(params: ComputationParams): number {
+  const { minValue, maxValue, progress } = params;
+  const minValuePx = convertToPx({
+    value: minValue.value,
+    unit: minValue.unit,
+    ...params,
+  });
+  const maxValuePx = convertToPx({
+    value: maxValue.value,
+    unit: maxValue.unit,
+    ...params,
+  });
+  return minValuePx + (maxValuePx - minValuePx) * progress;
 }
