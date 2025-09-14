@@ -1,15 +1,7 @@
 import { cloneDocument } from "../parse/cloner";
-import {
-  FluidData,
-  FluidPropertyMetaData,
-  FluidRange,
-} from "../parse/index.types";
+import { FluidData, FluidRange } from "../parse/index.types";
 import { parseCSS } from "../parse/parse";
-import {
-  FluidPropertyState,
-  GlobalState,
-  IFluidProperty,
-} from "./engine.types";
+import { FluidPropertyStateUpdate, GlobalState } from "./engine.types";
 import { FluidProperty } from "./fluidProperty";
 
 let state: GlobalState;
@@ -24,17 +16,21 @@ function resetState() {
     pendingHiddenElements: new Set(),
     windowSize: [400, 400],
     currentBreakpointIndex: 0,
+    appliedStates: new Map(),
   };
 }
 
 const intersectionObserver = new IntersectionObserver((entries) => {
   for (const entry of entries) {
+    const el = entry.target as HTMLElement;
     if (entry.isIntersecting) {
-      addActiveElement(entry.target as HTMLElement);
-      removePendingHiddenElement(entry.target as HTMLElement);
+      addActiveElement(el);
+      removePendingHiddenElement(el);
+      el.isVisible = true;
     } else {
-      addPendingHiddenElement(entry.target as HTMLElement);
-      removeActiveElement(entry.target as HTMLElement);
+      addPendingHiddenElement(el);
+      removeActiveElement(el);
+      el.isVisible = false;
     }
   }
 });
@@ -84,6 +80,14 @@ function updateWindowSize(): void {
   state.windowSize = [window.innerWidth, window.innerHeight];
 }
 
+function updateAppliedState(
+  el: HTMLElement,
+  property: string,
+  stateUpdate: FluidPropertyStateUpdate
+): void {
+  state.appliedStates.set([el, property], stateUpdate);
+}
+
 function init(): void {
   const doc = cloneDocument(document);
   const { breakpoints, fluidData } = parseCSS(doc);
@@ -93,11 +97,62 @@ function init(): void {
 function update(): void {
   updateWindowSize();
   updateCurrentBreakpointIndex();
+
+  for (const el of state.pendingHiddenElements) {
+    updateElement(el); //Flushes
+  }
+
+  for (const el of state.activeElements) updateElement(el);
+}
+
+function updateElement(el: HTMLElement): void {
+  if (!el.isConnected) {
+    removeActiveElement(el);
+    removePendingHiddenElement(el);
+    state.allElements.delete(el);
+    return;
+  }
+
+  const updatedStates = updateFluidProperties(el);
+  el.updateWidth = el.isVisible ? getState().windowSize[0] : undefined;
+
+  for (const [property, stateUpdate] of updatedStates.entries()) {
+    el.style.setProperty(property, stateUpdate.value);
+
+    if (stateUpdate.fluidProperty) {
+      updateAppliedState(el, property, stateUpdate);
+    }
+  }
+}
+
+function updateFluidProperties(
+  el: HTMLElement
+): Map<string, FluidPropertyStateUpdate> {
+  const updatedStates = new Map<string, FluidPropertyStateUpdate>();
+
+  if (el.isVisible) {
+    const { appliedStates } = getState();
+    for (const fluidProperty of el.fluidProperties || []) {
+      const appliedState = appliedStates.get([
+        el,
+        fluidProperty.metaData.property,
+      ]);
+      if (appliedState && fluidProperty.metaData.order < appliedState.order)
+        continue;
+
+      const stateUpdate = fluidProperty.update(appliedState);
+      if (stateUpdate)
+        updatedStates.set(fluidProperty.metaData.property, stateUpdate);
+    }
+  }
+
+  return updatedStates;
 }
 
 function addElements(elements: HTMLElement[]) {
   for (const el of elements) {
     if (state.allElements.has(el)) continue;
+    el.fluidProperties = [];
 
     const classes = Array.from(el.classList);
     for (const klass of classes) {

@@ -1,31 +1,19 @@
 import { FluidRange } from "../parse/index.types";
 import { getState } from "./engine";
-import {
-  AppliedFluidPropertyState,
-  ComputationParams,
-  ConvertToPxParams,
-} from "./engine.types";
-
-function isLowerOrder(currentOrder: number, otherOrder: number): boolean {
-  return currentOrder < otherOrder;
-}
+import { ComputationParams, ConvertToPxParams } from "./engine.types";
 
 function repeatLastComputedValue(
-  applied:
-    | Omit<AppliedFluidPropertyState, "value" | "fluidProperty">
-    | undefined,
-  order: number
+  appliedOrder: number | undefined,
+  order: number,
+  elUpdateWidth: number | undefined
 ): boolean {
-  if (!applied) return false;
+  if (!appliedOrder) return false;
 
-  if (order > applied.order) return false;
+  if (order > appliedOrder) return false;
 
-  const {
-    windowSize: [windowWidth],
-  } = getState();
-  if (Math.abs(applied.windowWidth - windowWidth) < 1) return true;
+  if (!elUpdateWidth) return false;
 
-  return false;
+  return Math.abs(elUpdateWidth - getState().windowSize[0]) < 1;
 }
 
 function computeValueAsString(
@@ -133,7 +121,6 @@ function interpolateFluidValue(params: ComputationParams): number {
 }
 
 export {
-  isLowerOrder,
   repeatLastComputedValue,
   computeValueAsString,
   makeComputationParams,

@@ -13,36 +13,35 @@ type GlobalState = {
   pendingHiddenElements: Set<HTMLElement>;
   windowSize: [number, number];
   currentBreakpointIndex: number;
+  appliedStates: Map<[HTMLElement, string], AppliedFluidPropertyState>;
 };
 
 type IFluidProperty = {
   el: HTMLElement;
   metaData: FluidPropertyMetaData;
   fluidRanges: (FluidRange | null)[];
-  state: FluidPropertyState;
+  update(
+    appliedState: AppliedFluidPropertyState | undefined
+  ): FluidPropertyStateUpdate | undefined;
 };
 
-type FluidPropertyState = {
+type FluidPropertyStateUpdate = {
   order: number;
   value: string;
-  property: string;
-  fluidProperty?: IFluidProperty;
-  applied?: AppliedFluidPropertyState;
+  fluidProperty: IFluidProperty;
 };
 
 type AppliedFluidPropertyState = {
   value: string;
   order: number;
-  windowWidth: number;
   fluidProperty: IFluidProperty;
 };
 
 declare global {
   interface HTMLElement {
-    fluidProperties: IFluidProperty[];
-    fluidPropertyStates: {
-      [property: string]: FluidPropertyState;
-    };
+    fluidProperties?: IFluidProperty[];
+    isVisible?: boolean;
+    updateWidth?: number;
   }
 }
 
@@ -62,8 +61,8 @@ type ConvertToPxParams = Pick<ComputationParams, "el" | "property"> & {
 export {
   GlobalState,
   IFluidProperty,
-  FluidPropertyState,
   AppliedFluidPropertyState,
   ConvertToPxParams,
   ComputationParams,
+  FluidPropertyStateUpdate,
 };
