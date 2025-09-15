@@ -1,92 +1,24 @@
-import { cloneDocument } from "../parse/cloner";
-import { FluidData, FluidRange } from "../parse/index.types";
-import { parseCSS } from "../parse/parse";
-import { FluidPropertyStateUpdate, GlobalState } from "./engine.types";
-import { FluidProperty } from "./fluidProperty";
-
-let state: GlobalState;
-resetState();
-
-function resetState() {
-  state = {
-    breakpoints: [],
-    fluidData: {},
-    allElements: new Set(),
-    activeElements: new Set(),
-    pendingHiddenElements: new Set(),
-    windowSize: [400, 400],
-    currentBreakpointIndex: 0,
-    appliedStates: new Map(),
-  };
-}
-
-const intersectionObserver = new IntersectionObserver((entries) => {
-  for (const entry of entries) {
-    const el = entry.target as HTMLElement;
-    if (entry.isIntersecting) {
-      addActiveElement(el);
-      removePendingHiddenElement(el);
-      el.isVisible = true;
-    } else {
-      addPendingHiddenElement(el);
-      removeActiveElement(el);
-      el.isVisible = false;
-    }
-  }
-});
-
-function getState() {
-  return { ...state };
-}
-
-function initEngineState(breakpoints: number[], fluidData: FluidData) {
-  state.breakpoints = breakpoints;
-  state.fluidData = fluidData;
-}
-
-function addActiveElement(el: HTMLElement) {
-  state.activeElements.add(el);
-}
-
-function removeActiveElement(el: HTMLElement) {
-  state.activeElements.delete(el);
-}
-
-function addPendingHiddenElement(el: HTMLElement) {
-  state.pendingHiddenElements.add(el);
-}
-
-function removePendingHiddenElement(el: HTMLElement) {
-  state.pendingHiddenElements.delete(el);
-}
-
-function updateCurrentBreakpointIndex(): void {
-  const { windowSize } = state;
-  const [windowWidth] = windowSize;
-
-  let currentBreakpointIndex = 0;
-  for (let i = state.breakpoints.length - 1; i >= 0; i--) {
-    const breakpoint = state.breakpoints[i];
-    if (windowWidth >= breakpoint) {
-      currentBreakpointIndex = i;
-      break;
-    }
-  }
-
-  state.currentBreakpointIndex = currentBreakpointIndex;
-}
-
-function updateWindowSize(): void {
-  state.windowSize = [window.innerWidth, window.innerHeight];
-}
-
-function updateAppliedState(
-  el: HTMLElement,
-  property: string,
-  stateUpdate: FluidPropertyStateUpdate
-): void {
-  state.appliedStates.set([el, property], stateUpdate);
-}
+import { cloneDocument } from "../../parse/cloner";
+import { FluidRange } from "../../parse/index.types";
+import { parseCSS } from "../../parse/parse";
+import { FluidPropertyStateUpdate, IFluidProperty } from "../engine.types";
+import { FluidProperty } from "../fluidProperty";
+import { intersectionObserver } from "./observers";
+import {
+  removePendingHiddenElement,
+  updateCurrentBreakpointIndex,
+  updateWindowSize,
+  updateAppliedState,
+  getBoundingClientRect,
+  getComputedStyle,
+  initEngineState,
+  clearCaches,
+  getState,
+  removeActiveElement,
+  deleteElement,
+  clearCacheForElement,
+  addElement,
+} from "./state";
 
 function init(): void {
   const doc = cloneDocument(document);
@@ -97,32 +29,41 @@ function init(): void {
 function update(): void {
   updateWindowSize();
   updateCurrentBreakpointIndex();
+  const { pendingHiddenElements, activeElements } = getState();
 
-  for (const el of state.pendingHiddenElements) {
+  for (const el of pendingHiddenElements) {
     updateElement(el); //Flushes
   }
 
-  for (const el of state.activeElements) updateElement(el);
+  for (const el of activeElements) updateElement(el);
+
+  clearCaches();
 }
 
 function updateElement(el: HTMLElement): void {
   if (!el.isConnected) {
     removeActiveElement(el);
     removePendingHiddenElement(el);
-    state.allElements.delete(el);
+    deleteElement(el);
+    intersectionObserver.unobserve(el);
+    for (const fluidProperty of el.fluidProperties || []) {
+      fluidProperty.destroy();
+    }
     return;
   }
 
   const updatedStates = updateFluidProperties(el);
   el.updateWidth = el.isVisible ? getState().windowSize[0] : undefined;
 
-  for (const [property, stateUpdate] of updatedStates.entries()) {
+  const updatedStatesEntries = Array.from(updatedStates.entries());
+  for (const [property, stateUpdate] of updatedStatesEntries) {
     el.style.setProperty(property, stateUpdate.value);
 
     if (stateUpdate.fluidProperty) {
       updateAppliedState(el, property, stateUpdate);
     }
   }
+  if (updatedStatesEntries.length > 0) clearCacheForElement(el);
 }
 
 function updateFluidProperties(
@@ -137,12 +78,16 @@ function updateFluidProperties(
         el,
         fluidProperty.metaData.property,
       ]);
+
       if (appliedState && fluidProperty.metaData.order < appliedState.order)
         continue;
 
       const stateUpdate = fluidProperty.update(appliedState);
-      if (stateUpdate)
+
+      if (stateUpdate) {
+        if (appliedState && appliedState.value === stateUpdate.value) continue;
         updatedStates.set(fluidProperty.metaData.property, stateUpdate);
+      }
     }
   }
 
@@ -151,7 +96,7 @@ function updateFluidProperties(
 
 function addElements(elements: HTMLElement[]) {
   for (const el of elements) {
-    if (state.allElements.has(el)) continue;
+    if (getState().allElements.has(el)) continue;
     el.fluidProperties = [];
 
     const classes = Array.from(el.classList);
@@ -170,7 +115,9 @@ function addElements(elements: HTMLElement[]) {
 
     if (el.fluidProperties.length <= 0) continue;
 
-    state.allElements.add(el);
+    el.fluidProperties = sortFluidProperties(el.fluidProperties);
+
+    addElement(el);
     intersectionObserver.observe(el);
   }
 }
@@ -203,4 +150,35 @@ function processAnchorMatch(el: HTMLElement, anchor: string): FluidProperty[] {
   return newFluidProperties;
 }
 
-export { init, update, addElements, getState };
+function sortFluidProperties(
+  fluidProperties: IFluidProperty[]
+): IFluidProperty[] {
+  const priorityProps = new Set(["font-size", "line-height"]);
+
+  return fluidProperties.sort((a, b) => {
+    // 1. Sort by orderID (descending)
+    if (a.metaData.order !== b.metaData.order) {
+      return b.metaData.order - a.metaData.order;
+    }
+
+    // 2. If same orderID, prioritize font-size / line-height
+    const aPriority = priorityProps.has(a.metaData.property);
+    const bPriority = priorityProps.has(b.metaData.property);
+
+    if (aPriority && !bPriority) return -1;
+    if (bPriority && !aPriority) return 1;
+
+    // 3. Otherwise keep original order
+    return 0;
+  });
+}
+
+export {
+  init,
+  update,
+  addElements,
+  getState,
+  updateElement,
+  getBoundingClientRect,
+  getComputedStyle,
+};
