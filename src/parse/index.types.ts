@@ -4,6 +4,7 @@ type FluidRange = {
   minIndex: number;
   maxIndex: number;
   locks?: Locks;
+  force?: Set<string> | "all";
 };
 
 type FluidValueBase = {};
