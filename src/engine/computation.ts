@@ -4,12 +4,13 @@ import {
   FluidValueBase,
 } from "../parse/index.types";
 import { isArithemticOperator } from "../utils";
-import { getState } from "./engine";
+import { getState } from "./instance/engine";
 import {
   ComputationParams,
   ConvertToPxParams,
   ValueComputationParams,
 } from "./engine.types";
+import { calcEmValue, calcPercentValue } from "./unitsConversion";
 
 function computeValue(params: ComputationParams): (number | string)[][] {
   const { progress, minValue, maxValue, el, property } = params;
@@ -100,18 +101,15 @@ function convertToPx(params: ConvertToPxParams): number {
   switch (unit) {
     case "px":
       return value;
-    case "em": {
-      if (property === "font-size") {
-        const parent = el.parentElement || document.documentElement;
-        return value * parseFloat(getComputedStyle(parent).fontSize);
-      } else {
-        return value * parseFloat(getComputedStyle(el).fontSize);
-      }
-    }
+    case "em":
+      return calcEmValue(value, el, property);
     case "rem":
       return (
         value * parseFloat(getComputedStyle(document.documentElement).fontSize)
       );
+    case "%":
+      return calcPercentValue(value, el, property);
+
     case "vw":
       return (value * windowSize[0]) / 100;
     case "vh":
