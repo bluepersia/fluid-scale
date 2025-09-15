@@ -13,7 +13,7 @@ import {
   StyleSheetParams,
   StyleSheetsParams,
 } from "./parse.types";
-import { processRuleBatches } from "./patcher";
+import { processRuleBatches } from "./patcher/patcher";
 
 const STYLE_RULE_TYPE = 1;
 const MEDIA_RULE_TYPE = 4;
