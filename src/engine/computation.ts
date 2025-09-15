@@ -177,13 +177,21 @@ function cloneElForMeasurement(
 function interpolateFluidValue(
   params: ComputationParams
 ): (number | string)[][] {
-  const { minValue, maxValue, progress, el, property } = params;
+  const { minValue, maxValue, progress, el, property, locks } = params;
   const minValuePxs = calculateFluidArray(minValue, el, property);
   const maxValuePxs = calculateFluidArray(maxValue, el, property);
 
   return minValuePxs.map((group, groupIndex) =>
     group.map((value, valueIndex) => {
-      if (typeof value === "string") return value;
+      if (
+        typeof value === "string" ||
+        locks === "all" ||
+        locks?.has(property) ||
+        (minValuePxs.length <= 1
+          ? locks?.has(`${property}/${valueIndex}`)
+          : locks?.has(`${property}/${groupIndex}/${valueIndex}`))
+      )
+        return value;
 
       const maxValue = maxValuePxs[groupIndex]?.[valueIndex];
 

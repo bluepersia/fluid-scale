@@ -3,6 +3,7 @@ import {
   FluidPropertyMetaData,
   FluidRange,
   FluidValueBase,
+  Locks,
 } from "../parse/index.types";
 
 type GlobalState = {
@@ -51,6 +52,7 @@ type ComputationParams = {
   progress: number;
   el: HTMLElement;
   property: string;
+  locks?: Locks;
 };
 
 type ValueComputationParams = Pick<ComputationParams, "el" | "property"> & {

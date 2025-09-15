@@ -3,6 +3,7 @@ type FluidRange = {
   maxValue: FluidValueBase[][];
   minIndex: number;
   maxIndex: number;
+  locks?: Locks;
 };
 
 type FluidValueBase = {};
@@ -36,6 +37,8 @@ type FluidPropertyMetaData = {
   property: string;
 };
 
+type Locks = Set<string> | "all" | null;
+
 export {
   FluidRange,
   FluidValue,
@@ -45,4 +48,5 @@ export {
   FluidValueBase,
   FunctionType,
   ArithemticOperator,
+  Locks,
 };

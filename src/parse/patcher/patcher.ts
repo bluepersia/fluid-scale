@@ -1,4 +1,4 @@
-import { FluidRange } from "../index.types";
+import { FluidRange, Locks } from "../index.types";
 import {
   ApplyNewFluidRangeParams,
   DocStateResult,
@@ -109,13 +109,35 @@ function processMatchingRule(
 }
 
 function makeNewFluidRange(params: NewFluidRangeParams): FluidRange {
-  const { minValue, maxValue, breakpoints, batchWidth, nextRuleBatch } = params;
-  return {
+  const { minValue, maxValue, breakpoints, batchWidth, nextRuleBatch, rule } =
+    params;
+
+  let lockResult: Locks = parseLocks(rule.style["--lock"]);
+
+  const result = {
     minValue: parse3DFluidValues(minValue),
     maxValue: parse3DFluidValues(maxValue),
     minIndex: breakpoints.indexOf(batchWidth),
     maxIndex: breakpoints.indexOf(nextRuleBatch.width),
-  };
+  } as FluidRange;
+
+  if (lockResult) {
+    result.locks = lockResult;
+  }
+
+  return result;
+}
+
+function parseLocks(lockVarValue: string): Locks {
+  if (lockVarValue) {
+    const lockVarParts = lockVarValue.split(" ");
+    if (lockVarParts.includes("all")) {
+      return "all";
+    } else {
+      return new Set(lockVarParts);
+    }
+  }
+  return null;
 }
 
 function applyNewFluidRange(

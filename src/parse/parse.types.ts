@@ -94,7 +94,12 @@ type MatchingRuleParams = Pick<
 
 type NewFluidRangeParams = Pick<
   MatchingRuleParams,
-  "minValue" | "maxValue" | "breakpoints" | "batchWidth" | "nextRuleBatch"
+  | "minValue"
+  | "maxValue"
+  | "breakpoints"
+  | "batchWidth"
+  | "nextRuleBatch"
+  | "rule"
 >;
 
 type ApplyNewFluidRangeParams = Pick<
