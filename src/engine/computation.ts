@@ -1,9 +1,9 @@
 import {
-  ArithemticOperator,
   FluidFunctionValue,
   FluidValue,
   FluidValueBase,
 } from "../parse/index.types";
+import { isArithemticOperator } from "../utils";
 import { getState } from "./engine";
 import {
   ComputationParams,
@@ -82,10 +82,6 @@ function calcExpression(
   }
 
   return new Function(`return (${expression})`)();
-}
-
-function isArithemticOperator(value: string): value is ArithemticOperator {
-  return value === "+" || value === "-" || value === "*" || value === "/";
 }
 
 function computeSingleValue(params: ValueComputationParams): number | string {

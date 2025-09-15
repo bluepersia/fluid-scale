@@ -1,4 +1,6 @@
+import { isArithemticOperator } from "../../utils";
 import {
+  ArithemticOperator,
   FluidFunctionValue,
   FluidValue,
   FluidValueBase,
@@ -48,16 +50,19 @@ function parseFluidValue(value: string): FluidValueBase {
     const funcName = funcMatch[1] as FunctionType;
     let depth = 0;
     let currentValue = "";
-    let values: FluidValueBase[] = [];
+    let values: (FluidValueBase | ArithemticOperator)[] = [];
     for (let i = 0; i < value.length; i++) {
       const char = value[i];
       if (char === "(") depth++;
       else if (char === ")") depth--;
-      if (depth >= 1) currentValue += char;
-      if (char === ",") {
+      else if (char === "," || isArithemticOperator(char)) {
         values.push(parseFluidValue(currentValue));
         currentValue = "";
-      }
+        if (isArithemticOperator(char)) {
+          values.push(char);
+        }
+      } else if (char === " ") continue;
+      else if (depth >= 1) currentValue += char;
     }
     values.push(parseFluidValue(currentValue));
     return { type: funcName, values } as FluidFunctionValue;
@@ -72,3 +77,5 @@ function getUnit(value: string): string {
   const match = String(value).match(/[a-z%]+$/i);
   return match ? match[0] : "px";
 }
+
+export { parse3DFluidValues };

@@ -4,11 +4,13 @@ import {
   DocStateResult,
   MatchingRuleParams,
   NewFluidRangeParams,
+  PropertyParams,
   RuleBatchesParams,
   RuleBatchParams,
   SelectorsParams,
   StyleRuleParams,
 } from "../parse.types";
+import { parse3DFluidValues } from "./fluidValueParse";
 
 function processRuleBatches(params: RuleBatchesParams): DocStateResult {
   const { ruleBatches } = params;
@@ -55,14 +57,19 @@ function processSelectors(
   const { rule } = params;
   let { fluidData } = params;
 
+  const forceResult: Set<string> | "all" | null = parseForce(
+    rule.style["--force"]
+  );
+
   const selectors = splitSelector(rule.selectorText);
   for (const selector of selectors) {
     for (const [property, minValue] of Object.entries(rule.style)) {
-      const { newFluidData } = processNextBatches({
+      const { newFluidData } = processProperty({
+        ...params,
         property,
         minValue,
         selector,
-        ...params,
+        force: forceResult,
       });
       fluidData = newFluidData;
     }
@@ -71,6 +78,35 @@ function processSelectors(
   return {
     newFluidData: fluidData,
   };
+}
+
+function parseForce(forceVarValue: string): Set<string> | "all" | null {
+  if (forceVarValue) {
+    const forceVarParts = forceVarValue.split(" ");
+    if (forceVarParts.includes("all")) {
+      return "all";
+    } else {
+      return new Set(forceVarParts);
+    }
+  }
+  return null;
+}
+
+function processProperty(
+  params: PropertyParams
+): Pick<DocStateResult, "newFluidData"> {
+  const { property, minValue, force, breakpoints } = params;
+
+  const doForce = force === "all" || force?.has(property);
+
+  if (doForce)
+    return processMatchingRule({
+      ...params,
+      maxValue: minValue,
+      nextBatchWidth: breakpoints[breakpoints.length - 1],
+    });
+
+  return processNextBatches({ ...params });
 }
 
 function processNextBatches(
@@ -86,7 +122,7 @@ function processNextBatches(
         const maxValue = nextRule.style[property];
         if (maxValue) {
           const { newFluidData } = processMatchingRule({
-            nextRuleBatch,
+            nextBatchWidth: nextRuleBatch.width,
             maxValue,
             ...params,
           });
@@ -109,7 +145,7 @@ function processMatchingRule(
 }
 
 function makeNewFluidRange(params: NewFluidRangeParams): FluidRange {
-  const { minValue, maxValue, breakpoints, batchWidth, nextRuleBatch, rule } =
+  const { minValue, maxValue, breakpoints, batchWidth, nextBatchWidth, rule } =
     params;
 
   let lockResult: Locks = parseLocks(rule.style["--lock"]);
@@ -118,7 +154,7 @@ function makeNewFluidRange(params: NewFluidRangeParams): FluidRange {
     minValue: parse3DFluidValues(minValue),
     maxValue: parse3DFluidValues(maxValue),
     minIndex: breakpoints.indexOf(batchWidth),
-    maxIndex: breakpoints.indexOf(nextRuleBatch.width),
+    maxIndex: breakpoints.indexOf(nextBatchWidth),
   } as FluidRange;
 
   if (lockResult) {
@@ -183,8 +219,3 @@ export {
   makeNewFluidRange,
   applyNewFluidRange,
 };
-function parse3DFluidValues(
-  minValue: string
-): import("../index.types").FluidValueBase[][] {
-  throw new Error("Function not implemented.");
-}

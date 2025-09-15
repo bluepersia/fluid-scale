@@ -60,6 +60,22 @@ type SelectorsParams = Pick<
   batchWidth: number;
 };
 
+type PropertyParams = Pick<
+  SelectorsParams,
+  | "fluidData"
+  | "order"
+  | "breakpoints"
+  | "batchIndex"
+  | "ruleBatches"
+  | "rule"
+  | "batchWidth"
+> & {
+  property: string;
+  minValue: string;
+  selector: string;
+  force: Set<string> | "all" | null;
+};
+
 type StyleRuleParams = Pick<
   SelectorsParams,
   | "fluidData"
@@ -88,19 +104,16 @@ type MatchingRuleParams = Pick<
   | "minValue"
   | "selector"
 > & {
-  nextRuleBatch: RuleBatch;
+  nextBatchWidth: number;
   maxValue: string;
 };
 
 type NewFluidRangeParams = Pick<
   MatchingRuleParams,
-  | "minValue"
-  | "maxValue"
-  | "breakpoints"
-  | "batchWidth"
-  | "nextRuleBatch"
-  | "rule"
->;
+  "minValue" | "maxValue" | "breakpoints" | "batchWidth" | "rule"
+> & {
+  nextBatchWidth: number;
+};
 
 type ApplyNewFluidRangeParams = Pick<
   MatchingRuleParams,
@@ -123,4 +136,5 @@ export {
   MatchingRuleParams,
   NewFluidRangeParams,
   ApplyNewFluidRangeParams,
+  PropertyParams,
 };
