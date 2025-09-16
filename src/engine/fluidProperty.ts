@@ -7,17 +7,17 @@ import {
   FluidValueBase,
 } from "../parse/index.types";
 import { computeValue } from "./computation";
-import { getState } from "./instance/engine";
 import {
   AppliedFluidPropertyState,
   ComputationParams,
-  ElementBundle,
   ElementState,
   ElementWithState,
   FluidPropertyConfig,
   FluidPropertyStateUpdate,
   IFluidProperty,
+  ComputeValueAsStringParams,
   RepeatLastComputedValueParams,
+  FluidPropertyUpdateParams,
 } from "./engine.types";
 import {
   observePercentTarget,
@@ -103,16 +103,15 @@ class FluidProperty implements IFluidProperty {
   }
 
   update(
-    appliedState: AppliedFluidPropertyState | undefined,
-    windowSize: number,
-    elBundle: ElementBundle
+    params: FluidPropertyUpdateParams
   ): FluidPropertyStateUpdate | undefined {
+    const { appliedState, windowWidth, elBundle } = params;
     if (
       appliedState &&
       repeatLastComputedValue(
         this.makeRepeatLastComputedValueParams(
           appliedState,
-          windowSize,
+          windowWidth,
           elBundle.el.state
         )
       )
@@ -121,12 +120,11 @@ class FluidProperty implements IFluidProperty {
       return;
     }
 
-    const { value, fluidRangeIndex } = computeValueAsString(
-      this.fluidRanges,
-      elBundle,
-      this.metaData.property
-    );
-
+    const { value, fluidRangeIndex } = computeValueAsString({
+      ...params,
+      fluidRanges: this.fluidRanges,
+      property: this.metaData.property,
+    });
     return {
       order: this.metaData.order,
       value,
@@ -176,12 +174,11 @@ function repeatLastComputedValue(
   return Math.abs(elUpdateWidth - windowWidth) < 1;
 }
 
-function computeValueAsString(
-  fluidRanges: (FluidRange | null)[],
-  elBundle: ElementBundle,
-  property: string
-): { value: string; fluidRangeIndex: number } {
-  const state = makeComputationParams(fluidRanges, elBundle, property);
+function computeValueAsString(params: ComputeValueAsStringParams): {
+  value: string;
+  fluidRangeIndex: number;
+} {
+  const state = makeComputationParams(params);
 
   if (!state) return { value: "", fluidRangeIndex: -1 };
 
@@ -200,15 +197,10 @@ function computeValueAsString(
 }
 
 function makeComputationParams(
-  fluidRanges: (FluidRange | null)[],
-  elBundle: ElementBundle,
-  property: string
+  params: ComputeValueAsStringParams
 ): ComputationParams | null {
-  const {
-    currentBreakpointIndex,
-    windowSize: [windowWidth],
-    breakpoints,
-  } = getState();
+  const { currentBreakpointIndex, windowWidth, breakpoints } = params;
+  const { fluidRanges, elBundle, property } = params;
 
   const fluidRangeIndex = fluidRanges.findIndex(
     (range) =>

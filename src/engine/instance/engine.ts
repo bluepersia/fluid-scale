@@ -7,6 +7,7 @@ import {
   FluidPropertyStateUpdate,
   IFluidProperty,
   ProcessAnchorMatchParams,
+  UpdateElementParams,
 } from "../engine.types";
 import { FluidProperty } from "../fluidProperty";
 import { intersectionObserver } from "./observers";
@@ -39,15 +40,24 @@ function init(): void {
 function update(): void {
   updateWindowSize();
   updateCurrentBreakpointIndex();
+  const state = getState();
   const { pendingHiddenElements, activeElements, windowSize, elementStates } =
-    getState();
+    state;
 
   for (const el of pendingHiddenElements) {
-    updateElement(makeElBundle(el, elementStates), windowSize[0]); //Flushes
+    updateElement({
+      elBundle: makeElBundle(el, elementStates),
+      windowWidth: windowSize[0],
+      ...state,
+    }); //Flushes
   }
 
   for (const el of activeElements) {
-    updateElement(makeElBundle(el, elementStates), windowSize[0]);
+    updateElement({
+      elBundle: makeElBundle(el, elementStates),
+      windowWidth: windowSize[0],
+      ...state,
+    });
   }
   clearCaches();
 }
@@ -65,7 +75,8 @@ function makeElBundle(
   };
 }
 
-function updateElement(elBundle: ElementBundle, windowWidth: number): void {
+function updateElement(params: UpdateElementParams): void {
+  const { elBundle, windowWidth } = params;
   const { el, state } = elBundle.el;
 
   if (!el.isConnected) {
@@ -79,17 +90,17 @@ function updateElement(elBundle: ElementBundle, windowWidth: number): void {
     return;
   }
 
-  const updatedStates = updateFluidProperties(elBundle, windowWidth);
+  const updatedStates = updateFluidProperties(params);
   state.updateWidth = state.isVisible ? windowWidth : undefined;
 
   applyUpdatedStates(el, state, Array.from(updatedStates.entries()));
 }
 
 function updateFluidProperties(
-  elBundle: ElementBundle,
-  windowSize: number
+  params: UpdateElementParams
 ): Map<string, FluidPropertyStateUpdate> {
   const updatedStates = new Map<string, FluidPropertyStateUpdate>();
+  const { elBundle } = params;
   const { state } = elBundle.el;
 
   if (state.isVisible) {
@@ -101,11 +112,10 @@ function updateFluidProperties(
       if (appliedState && fluidProperty.metaData.order < appliedState.order)
         continue;
 
-      const stateUpdate = fluidProperty.update(
+      const stateUpdate = fluidProperty.update({
         appliedState,
-        windowSize,
-        elBundle
-      );
+        ...params,
+      });
 
       if (stateUpdate) {
         if (appliedState && appliedState.value === stateUpdate.value) continue;

@@ -23,9 +23,7 @@ type IFluidProperty = {
   metaData: FluidPropertyMetaData;
   fluidRanges: (FluidRange | null)[];
   update(
-    appliedState: AppliedFluidPropertyState | undefined,
-    windowSize: number,
-    elBundle: ElementBundle
+    params: FluidPropertyUpdateParams
   ): FluidPropertyStateUpdate | undefined;
   percentTarget?: ElementWithState;
   percentTargetForFluidRange: boolean[];
@@ -71,6 +69,28 @@ type ProcessAnchorMatchParams = {
   anchor: string;
   breakpoints: number[];
   fluidData: FluidData;
+};
+
+type UpdateElementParams = {
+  elBundle: ElementBundle;
+  windowWidth: number;
+  breakpoints: number[];
+  currentBreakpointIndex: number;
+};
+
+type FluidPropertyUpdateParams = Pick<
+  UpdateElementParams,
+  "elBundle" | "windowWidth" | "breakpoints" | "currentBreakpointIndex"
+> & {
+  appliedState: AppliedFluidPropertyState | undefined;
+};
+
+type ComputeValueAsStringParams = Pick<
+  FluidPropertyUpdateParams,
+  "elBundle" | "windowWidth" | "breakpoints" | "currentBreakpointIndex"
+> & {
+  fluidRanges: (FluidRange | null)[];
+  property: string;
 };
 
 type ComputationParams = {
@@ -122,4 +142,7 @@ export {
   ProcessAnchorMatchParams,
   FluidPropertyConfig,
   ElementBundle,
+  ComputeValueAsStringParams,
+  FluidPropertyUpdateParams,
+  UpdateElementParams,
 };
