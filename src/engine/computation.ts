@@ -4,18 +4,20 @@ import {
   FluidValueBase,
 } from "../parse/index.types";
 import { isArithemticOperator } from "../utils";
-import { getState } from "./instance/engine";
+import { getState, PROPERTY_REDIRECTS } from "./instance/engine";
 import {
   ComputationParams,
   ConvertToPxParams,
+  ElementBundle,
   ValueComputationParams,
 } from "./engine.types";
 import { calcEmValue, calcPercentValue } from "./unitsConversion";
 
 function computeValue(params: ComputationParams): (number | string)[][] {
-  const { progress, minValue, maxValue, el, property } = params;
-  if (progress <= 0) return calculateFluidArray(minValue, el, property);
-  else if (progress >= 1) return calculateFluidArray(maxValue, el, property);
+  const { progress, minValue, maxValue, elBundle, property } = params;
+  if (progress <= 0) return calculateFluidArray(minValue, elBundle, property);
+  else if (progress >= 1)
+    return calculateFluidArray(maxValue, elBundle, property);
   else {
     return interpolateFluidValue(params);
   }
@@ -23,30 +25,30 @@ function computeValue(params: ComputationParams): (number | string)[][] {
 
 function computeFluidValue(
   fluidValueBase: FluidValueBase,
-  el: HTMLElement,
+  elBundle: ElementBundle,
   property: string
 ): number | string {
   const fluidFuncValue = fluidValueBase as FluidFunctionValue;
 
   if (fluidFuncValue.type)
-    return computeFuncValue(fluidFuncValue, el, property);
+    return computeFuncValue(fluidFuncValue, elBundle, property);
   else {
     const { value, unit } = fluidValueBase as FluidValue;
-    return computeSingleValue({ value, unit, el, property });
+    return computeSingleValue({ value, unit, elBundle, property });
   }
 }
 
 function computeFuncValue(
   func: FluidFunctionValue,
-  el: HTMLElement,
+  elBundle: ElementBundle,
   property: string
 ): number | string {
   const { type, values } = func;
 
-  if (type === "calc") return calcExpression(values, el, property);
+  if (type === "calc") return calcExpression(values, elBundle, property);
 
   const valuesPx = values.map(
-    (value) => computeFluidValue(value, el, property) as number
+    (value) => computeFluidValue(value, elBundle, property) as number
   );
   switch (type) {
     case "min":
@@ -63,7 +65,7 @@ function computeFuncValue(
 
 function calcExpression(
   values: (FluidValueBase | string)[],
-  el: HTMLElement,
+  elBundle: ElementBundle,
   property: string
 ): number | string {
   const expression = values
@@ -73,7 +75,7 @@ function calcExpression(
         if (value === "none") throw Error("None in calc");
       }
 
-      return computeFluidValue(value, el, property);
+      return computeFluidValue(value, elBundle, property);
     })
     .join("");
 
@@ -86,29 +88,33 @@ function calcExpression(
 }
 
 function computeSingleValue(params: ValueComputationParams): number | string {
-  const { value, unit, el, property } = params;
+  const { value, unit, elBundle, property } = params;
   if (typeof value === "number" && typeof unit === "string") {
     return convertToPx({ ...params, value });
   } else if (typeof value === "string") {
-    return measureKeywordValue(el, property, value);
+    return measureKeywordValue(
+      elBundle.el.el,
+      PROPERTY_REDIRECTS.get(property) || property,
+      value
+    );
   }
   throw new Error(`Unknown value or unit: ${value} ${unit}`);
 }
 
 function convertToPx(params: ConvertToPxParams): number {
-  const { value, unit, el, property } = params;
+  const { value, unit, elBundle, property } = params;
   const { windowSize } = getState();
   switch (unit) {
     case "px":
       return value;
     case "em":
-      return calcEmValue(value, el, property);
+      return calcEmValue(value, elBundle, property);
     case "rem":
       return (
         value * parseFloat(getComputedStyle(document.documentElement).fontSize)
       );
     case "%":
-      return calcPercentValue(value, el, property);
+      return calcPercentValue(value, elBundle, property);
 
     case "vw":
       return (value * windowSize[0]) / 100;
@@ -171,9 +177,9 @@ function cloneElForMeasurement(
 function interpolateFluidValue(
   params: ComputationParams
 ): (number | string)[][] {
-  const { minValue, maxValue, progress, el, property, locks } = params;
-  const minValuePxs = calculateFluidArray(minValue, el, property);
-  const maxValuePxs = calculateFluidArray(maxValue, el, property);
+  const { minValue, maxValue, progress, elBundle, property, locks } = params;
+  const minValuePxs = calculateFluidArray(minValue, elBundle, property);
+  const maxValuePxs = calculateFluidArray(maxValue, elBundle, property);
 
   return minValuePxs.map((group, groupIndex) =>
     group.map((value, valueIndex) => {
@@ -199,15 +205,15 @@ function interpolateFluidValue(
 
 function calculateFluidArray(
   fluidValues: FluidValueBase[][],
-  el: HTMLElement,
+  elBundle: ElementBundle,
   property: string
 ): (number | string)[][] {
   const isGrid = property.startsWith("grid-");
 
   return fluidValues.map((group) =>
     isGrid
-      ? computeGridValue(el, property, group.join(" "))
-      : group.map((value) => computeFluidValue(value, el, property))
+      ? computeGridValue(elBundle.el.el, property, group.join(" "))
+      : group.map((value) => computeFluidValue(value, elBundle, property))
   );
 }
 

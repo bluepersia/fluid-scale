@@ -92,6 +92,12 @@ function cloneStyleRule(styleRule: CSSStyleRule): StyleRuleClone {
   const style: Record<string, string> = {};
   for (const property of Array.from(styleRule.style)) {
     if (FLUID_PROPERTY_NAMES.has(property)) {
+      if (
+        property === "background-size" &&
+        "--bg-fluid-size" in styleRule.style
+      ) {
+        continue;
+      }
       style[property] = styleRule.style.getPropertyValue(property);
     }
   }

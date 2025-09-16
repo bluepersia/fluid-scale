@@ -1,6 +1,7 @@
 import {
   addActiveElement,
   addPendingHiddenElement,
+  getState,
   removeActiveElements,
   removePendingHiddenElement,
   sortActiveElements,
@@ -17,15 +18,16 @@ function handleIntersection(entries: IntersectionObserverEntry[]) {
   let newActive = false;
   for (const entry of entries) {
     const el = entry.target as HTMLElement;
+    const elState = getState().elementStates.get(el)!;
     if (entry.isIntersecting) {
       newActive = true;
       addActiveElement(el);
       removePendingHiddenElement(el);
-      el.isVisible = true;
+      elState.isVisible = true;
     } else {
       addPendingHiddenElement(el);
       removedElements.add(el);
-      el.isVisible = false;
+      elState.isVisible = false;
     }
   }
   removeActiveElements(removedElements);
@@ -60,7 +62,7 @@ const percentTargetResizeObserver = new ResizeObserver(
 function handlePercentTargetResize(entries: ResizeObserverEntry[]) {
   entries.forEach((entry) => {
     if (entry.target instanceof HTMLElement)
-      entry.target.percentChangeFlag = true;
+      getState().elementStates.get(entry.target)!.percentChangeFlag = true;
   });
 }
 
@@ -85,7 +87,7 @@ function handlePercentTargetMutation(mutations: MutationRecord[]) {
       (mutation.attributeName.startsWith("data-") ||
         attributesToObserve.has(mutation.attributeName))
     )
-      mutation.target.percentChangeFlag = true;
+      getState().elementStates.get(mutation.target)!.percentChangeFlag = true;
   });
 }
 
