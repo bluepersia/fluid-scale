@@ -11,6 +11,10 @@ import { getState } from "./instance/engine";
 import {
   AppliedFluidPropertyState,
   ComputationParams,
+  ElementBundle,
+  ElementState,
+  ElementWithState,
+  FluidPropertyConfig,
   FluidPropertyStateUpdate,
   IFluidProperty,
   RepeatLastComputedValueParams,
@@ -21,17 +25,13 @@ import {
 } from "./instance/observers";
 
 class FluidProperty implements IFluidProperty {
-  el: HTMLElement;
   metaData: FluidPropertyMetaData;
   fluidRanges: (FluidRange | null)[];
-  percentTarget?: HTMLElement;
+  percentTarget?: ElementWithState;
   percentTargetForFluidRange: boolean[];
-  constructor(
-    el: HTMLElement,
-    metaData: FluidPropertyMetaData,
-    fluidRanges: (FluidRange | null)[]
-  ) {
-    this.el = el;
+  constructor(config: FluidPropertyConfig) {
+    const { el, metaData, fluidRanges, elStateCache } = config;
+
     this.metaData = metaData;
     this.fluidRanges = fluidRanges;
     this.percentTargetForFluidRange = fluidRanges.map((fluidRange) => {
@@ -42,18 +42,21 @@ class FluidProperty implements IFluidProperty {
       );
     });
 
-    this.setPercentTarget();
+    this.setPercentTarget(el, elStateCache);
 
     if (
       this.percentTarget &&
       this.percentTargetForFluidRange.some((val) => val === true)
     )
-      observePercentTarget(this.percentTarget);
+      observePercentTarget(this.percentTarget.el);
   }
 
-  setPercentTarget() {
-    const el = this.el;
+  setPercentTarget(
+    el: HTMLElement,
+    elStateCache: Map<HTMLElement, ElementState>
+  ) {
     const parent = el.parentElement || document.documentElement;
+    let targetEl;
     switch (this.metaData.property) {
       case "width":
       case "left":
@@ -64,7 +67,7 @@ class FluidProperty implements IFluidProperty {
       case "padding-right":
       case "border-left-width":
       case "border-right-width":
-        this.percentTarget = parent;
+        targetEl = parent;
         break;
       case "height":
       case "top":
@@ -75,34 +78,43 @@ class FluidProperty implements IFluidProperty {
       case "padding-bottom":
       case "border-top-width":
       case "border-bottom-width":
-        this.percentTarget = parent;
+        targetEl = parent;
         break;
       case "background-position-x":
-        this.percentTarget = el;
+        targetEl = el;
         break;
       case "background-position-y":
-        this.percentTarget = el;
+        targetEl = el;
         break;
       case "font-size":
-        this.percentTarget = parent;
+        targetEl = parent;
         break;
       case "line-height":
-        this.percentTarget = el;
+        targetEl = el;
         break;
+    }
+    if (targetEl) {
+      this.percentTarget = { el: targetEl, state: elStateCache.get(targetEl)! };
     }
   }
 
   destroy() {
-    if (this.percentTarget) unobservePercentTarget(this.percentTarget);
+    if (this.percentTarget) unobservePercentTarget(this.percentTarget.el);
   }
 
   update(
-    appliedState: AppliedFluidPropertyState | undefined
+    appliedState: AppliedFluidPropertyState | undefined,
+    windowSize: number,
+    elBundle: ElementBundle
   ): FluidPropertyStateUpdate | undefined {
     if (
       appliedState &&
       repeatLastComputedValue(
-        this.makeRepeatLastComputedValueParams(appliedState)
+        this.makeRepeatLastComputedValueParams(
+          appliedState,
+          windowSize,
+          elBundle.el.state
+        )
       )
     ) {
       if (appliedState.fluidProperty === this) return appliedState;
@@ -111,7 +123,7 @@ class FluidProperty implements IFluidProperty {
 
     const { value, fluidRangeIndex } = computeValueAsString(
       this.fluidRanges,
-      this.el,
+      elBundle,
       this.metaData.property
     );
 
@@ -123,14 +135,19 @@ class FluidProperty implements IFluidProperty {
     };
   }
 
-  makeRepeatLastComputedValueParams(appliedState: AppliedFluidPropertyState) {
+  makeRepeatLastComputedValueParams(
+    appliedState: AppliedFluidPropertyState,
+    windowWidth: number,
+    elState: ElementState
+  ): RepeatLastComputedValueParams {
     return {
       appliedOrder: appliedState.order,
       appliedFluidRangedHasPercent:
         this.percentTargetForFluidRange[appliedState?.fluidRangeIndex],
-      percentTarget: this.percentTarget,
+      percentTargetState: this.percentTarget?.state,
       order: this.metaData.order,
-      elUpdateWidth: this.el.updateWidth,
+      elUpdateWidth: elState.updateWidth,
+      windowWidth,
     };
   }
 }
@@ -143,27 +160,28 @@ function repeatLastComputedValue(
     order,
     elUpdateWidth,
     appliedFluidRangedHasPercent,
-    percentTarget,
+    percentTargetState,
+    windowWidth,
   } = params;
 
   if (!appliedOrder) return false;
 
-  if (appliedFluidRangedHasPercent && percentTarget?.percentChangeFlag)
+  if (appliedFluidRangedHasPercent && percentTargetState?.percentChangeFlag)
     return false;
 
   if (order > appliedOrder) return false;
 
   if (!elUpdateWidth) return false;
 
-  return Math.abs(elUpdateWidth - getState().windowSize[0]) < 1;
+  return Math.abs(elUpdateWidth - windowWidth) < 1;
 }
 
 function computeValueAsString(
   fluidRanges: (FluidRange | null)[],
-  el: HTMLElement,
+  elBundle: ElementBundle,
   property: string
 ): { value: string; fluidRangeIndex: number } {
-  const state = makeComputationParams(fluidRanges, el, property);
+  const state = makeComputationParams(fluidRanges, elBundle, property);
 
   if (!state) return { value: "", fluidRangeIndex: -1 };
 
@@ -183,7 +201,7 @@ function computeValueAsString(
 
 function makeComputationParams(
   fluidRanges: (FluidRange | null)[],
-  el: HTMLElement,
+  elBundle: ElementBundle,
   property: string
 ): ComputationParams | null {
   const {
@@ -208,7 +226,13 @@ function makeComputationParams(
   const progress =
     (windowWidth - minBreakpoint) / (maxBreakpoint - minBreakpoint);
 
-  return { ...currentFluidRange, progress, el, property, fluidRangeIndex };
+  return {
+    ...currentFluidRange,
+    progress,
+    elBundle,
+    property,
+    fluidRangeIndex,
+  };
 }
 
 function hasPercent(

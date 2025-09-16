@@ -1,24 +1,31 @@
-import {
-  getBoundingClientRect,
-  getComputedStyle,
-  updateElement,
-} from "./instance/engine";
+import { ElementBundle, ElementWithState } from "./engine.types";
+import { getBoundingClientRect } from "./instance/engine";
 
-function calcEmValue(value: number, el: HTMLElement, property: string): number {
+function readPropertyStateValue(elWState: ElementWithState, property: string) {
+  return parseFloat(
+    elWState.state?.fluidStates.get(property)?.value ||
+      getComputedStyle(elWState.el).getPropertyValue(property)
+  );
+}
+
+function calcEmValue(
+  value: number,
+  elBundle: ElementBundle,
+  property: string
+): number {
   if (property === "font-size") {
-    const parent = el.parentElement || document.documentElement;
-    return value * parseFloat(getComputedStyle(parent).fontSize);
+    return value * readPropertyStateValue(elBundle.parent, "font-size");
   } else {
-    return value * parseFloat(getComputedStyle(el).fontSize);
+    return value * readPropertyStateValue(elBundle.el, "font-size");
   }
 }
 
 function calcPercentValue(
   value: number,
-  el: HTMLElement,
+  elBundle: ElementBundle,
   property: string
 ): number {
-  const parent = el.parentElement || document.documentElement;
+  const parent = elBundle.parent;
 
   switch (property) {
     case "width":
@@ -44,56 +51,59 @@ function calcPercentValue(
       return calcVerticalPercentValue(value, parent);
 
     case "background-position-x":
-      return calcHorizontalPercentValue(value, el);
+      return calcHorizontalPercentValue(value, elBundle.el);
 
     case "background-position-y":
-      return calcVerticalPercentValue(value, el);
+      return calcVerticalPercentValue(value, elBundle.el);
 
     case "font-size":
       return calcFontSizePercentValue(value, parent);
 
     case "line-height":
-      return calcLineHeightPercentValue(value, el);
+      return calcLineHeightPercentValue(value, elBundle.el);
   }
   throw new Error(`Unknown percentage property: ${property}`);
 }
 
 function calcHorizontalPercentValue(
   value: number,
-  parent: HTMLElement
+  parent: ElementWithState
 ): number {
-  updateElement(parent);
-  const parentRect = getBoundingClientRect(parent);
-  const parentStyle = getComputedStyle(parent);
+  const parentRect = getBoundingClientRect(parent.el);
   const [paddingLeft, paddingRight] = [
-    parseFloat(parentStyle.paddingLeft),
-    parseFloat(parentStyle.paddingRight),
+    readPropertyStateValue(parent, "padding-left"),
+    readPropertyStateValue(parent, "padding-right"),
   ];
   const parentWidth = parentRect.width - paddingLeft - paddingRight;
   return (value / 100) * parentWidth;
 }
 
-function calcVerticalPercentValue(value: number, parent: HTMLElement): number {
-  updateElement(parent);
-  const parentRect = getBoundingClientRect(parent);
-  const parentStyle = getComputedStyle(parent);
+function calcVerticalPercentValue(
+  value: number,
+  parent: ElementWithState
+): number {
+  const parentRect = getBoundingClientRect(parent.el);
   const [paddingTop, paddingBottom] = [
-    parseFloat(parentStyle.paddingTop),
-    parseFloat(parentStyle.paddingBottom),
+    readPropertyStateValue(parent, "padding-top"),
+    readPropertyStateValue(parent, "padding-bottom"),
   ];
   const parentHeight = parentRect.height - paddingTop - paddingBottom;
   return (value / 100) * parentHeight;
 }
 
-function calcFontSizePercentValue(value: number, parent: HTMLElement): number {
-  const parentStyle = getComputedStyle(parent);
-  const parentFontSize = parseFloat(parentStyle.fontSize);
+function calcFontSizePercentValue(
+  value: number,
+  parent: ElementWithState
+): number {
+  const parentFontSize = readPropertyStateValue(parent, "font-size");
   return (value / 100) * parentFontSize;
 }
 
-function calcLineHeightPercentValue(value: number, el: HTMLElement): number {
-  const elStyle = getComputedStyle(el);
-  const elFontSize = parseFloat(elStyle.fontSize);
+function calcLineHeightPercentValue(
+  value: number,
+  el: ElementWithState
+): number {
+  const elFontSize = readPropertyStateValue(el, "font-size");
   return (value / 100) * elFontSize;
 }
 

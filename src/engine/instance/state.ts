@@ -1,5 +1,5 @@
 import { FluidData } from "../../parse/index.types";
-import { FluidPropertyStateUpdate, GlobalState } from "../engine.types";
+import { ElementState, GlobalState, IFluidProperty } from "../engine.types";
 
 let state: GlobalState;
 resetState();
@@ -13,9 +13,9 @@ function resetState() {
     pendingHiddenElements: new Set(),
     windowSize: [400, 400],
     currentBreakpointIndex: 0,
-    appliedStates: new Map(),
     boundClientRects: new Map<HTMLElement, DOMRect>(),
     computedStyles: new Map<HTMLElement, CSSStyleDeclaration>(),
+    elementStates: new Map<HTMLElement, ElementState>(),
   };
 }
 function getState() {
@@ -94,14 +94,6 @@ function updateWindowSize(): void {
   state.windowSize = [window.innerWidth, window.innerHeight];
 }
 
-function updateAppliedState(
-  el: HTMLElement,
-  property: string,
-  stateUpdate: FluidPropertyStateUpdate
-): void {
-  state.appliedStates.set([el, property], stateUpdate);
-}
-
 function getBoundingClientRect(el: HTMLElement): DOMRect {
   const rect = state.boundClientRects.get(el);
   if (rect) return rect;
@@ -128,6 +120,24 @@ function clearCacheForElement(el: HTMLElement): void {
   state.computedStyles.delete(el);
 }
 
+function initElementState(el: HTMLElement): ElementState {
+  state.elementStates.set(el, {
+    fluidProperties: [],
+    isVisible: true,
+    updateWidth: undefined,
+    percentChangeFlag: false,
+    fluidStates: new Map(),
+  });
+  return state.elementStates.get(el)!;
+}
+
+function addFluidProperties(
+  el: HTMLElement,
+  fluidProperty: IFluidProperty[]
+): void {
+  state.elementStates.get(el)!.fluidProperties!.push(...fluidProperty);
+}
+
 export {
   getState,
   initEngineState,
@@ -139,11 +149,12 @@ export {
   removePendingHiddenElement,
   updateCurrentBreakpointIndex,
   updateWindowSize,
-  updateAppliedState,
   getBoundingClientRect,
   getComputedStyle,
   clearCaches,
   clearCacheForElement,
   deleteElement,
   addElement,
+  initElementState,
+  addFluidProperties,
 };

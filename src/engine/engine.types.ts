@@ -14,21 +14,29 @@ type GlobalState = {
   pendingHiddenElements: Set<HTMLElement>;
   windowSize: [number, number];
   currentBreakpointIndex: number;
-  appliedStates: Map<[HTMLElement, string], AppliedFluidPropertyState>;
   boundClientRects: Map<HTMLElement, DOMRect>;
   computedStyles: Map<HTMLElement, CSSStyleDeclaration>;
+  elementStates: Map<HTMLElement, ElementState>;
 };
 
 type IFluidProperty = {
-  el: HTMLElement;
   metaData: FluidPropertyMetaData;
   fluidRanges: (FluidRange | null)[];
   update(
-    appliedState: AppliedFluidPropertyState | undefined
+    appliedState: AppliedFluidPropertyState | undefined,
+    windowSize: number,
+    elBundle: ElementBundle
   ): FluidPropertyStateUpdate | undefined;
-  percentTarget?: HTMLElement;
+  percentTarget?: ElementWithState;
   percentTargetForFluidRange: boolean[];
   destroy(): void;
+};
+
+type FluidPropertyConfig = {
+  el: HTMLElement;
+  metaData: FluidPropertyMetaData;
+  fluidRanges: (FluidRange | null)[];
+  elStateCache: Map<HTMLElement, ElementState>;
 };
 
 type FluidPropertyStateUpdate = {
@@ -45,26 +53,40 @@ type AppliedFluidPropertyState = {
   fluidRangeIndex: number;
 };
 
-declare global {
-  interface HTMLElement {
-    fluidProperties?: IFluidProperty[];
-    isVisible?: boolean;
-    updateWidth?: number;
-    percentChangeFlag?: boolean;
-  }
-}
+type ElementState = {
+  fluidProperties?: IFluidProperty[];
+  isVisible?: boolean;
+  updateWidth?: number;
+  percentChangeFlag?: boolean;
+  fluidStates: Map<string, AppliedFluidPropertyState>;
+};
+
+type ElementWithState = {
+  el: HTMLElement;
+  state: ElementState;
+};
+
+type ProcessAnchorMatchParams = {
+  el: HTMLElement;
+  anchor: string;
+  breakpoints: number[];
+  fluidData: FluidData;
+};
 
 type ComputationParams = {
   minValue: FluidValueBase[][];
   maxValue: FluidValueBase[][];
   progress: number;
-  el: HTMLElement;
+  elBundle: ElementBundle;
   property: string;
   locks?: Locks;
   fluidRangeIndex: number;
 };
 
-type ValueComputationParams = Pick<ComputationParams, "el" | "property"> & {
+type ValueComputationParams = Pick<
+  ComputationParams,
+  "elBundle" | "property"
+> & {
   value: number | string;
   unit?: string;
 };
@@ -76,9 +98,15 @@ type ConvertToPxParams = Omit<ValueComputationParams, "value"> & {
 type RepeatLastComputedValueParams = {
   appliedOrder: number | undefined;
   appliedFluidRangedHasPercent: boolean;
-  percentTarget: HTMLElement | undefined;
+  percentTargetState: ElementState | undefined;
   elUpdateWidth: number | undefined;
   order: number;
+  windowWidth: number;
+};
+
+type ElementBundle = {
+  el: ElementWithState;
+  parent: ElementWithState;
 };
 export {
   GlobalState,
@@ -89,4 +117,9 @@ export {
   FluidPropertyStateUpdate,
   ConvertToPxParams,
   RepeatLastComputedValueParams,
+  ElementState,
+  ElementWithState,
+  ProcessAnchorMatchParams,
+  FluidPropertyConfig,
+  ElementBundle,
 };
