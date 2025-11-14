@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/finalhandler": "^1.2.4",
     "@types/serve-static": "^2.2.0",
     "eslint": "^9.39.1",
     "eslint-plugin-playwright": "^2.3.0",
