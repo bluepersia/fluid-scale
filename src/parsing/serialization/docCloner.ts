@@ -95,8 +95,7 @@ let cloneStyleRule = (
   styleRuleClone.style = propsResult.style;
   styleRuleClone.specialProps = propsResult.specialProps;
   if (shouldIncludeStyleRule(styleRuleClone)) {
-    ctx.counter!.orderID++;
-    styleRuleClone.orderID = ctx.counter!.orderID;
+    styleRuleClone.orderID = assignOrderID(ctx);
 
     if (dev) {
       event?.emit("cloneStyleRule", ctx, { styleRuleClone });
@@ -114,6 +113,10 @@ function shouldIncludeStyleRule(styleRuleClone: StyleRuleClone): boolean {
     Object.keys(styleRuleClone.style).length > 0 ||
     Object.keys(styleRuleClone.specialProps).length > 0
   );
+}
+function assignOrderID(ctx: CloneDocContext): number {
+  ctx.counter!.orderID++;
+  return ctx.counter!.orderID;
 }
 
 let processStyleProperty = (
