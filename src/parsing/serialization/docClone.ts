@@ -30,7 +30,7 @@ class SheetClone {
     return rule;
   }
 
-  addMediaQuery() {
+  addMediaRule() {
     const rule = new MediaQueryClone(this.#global);
     this.rules.push(rule);
     return rule;
