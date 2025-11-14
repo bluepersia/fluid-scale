@@ -12,11 +12,13 @@
   },
   "devDependencies": {
     "@types/finalhandler": "^1.2.4",
+    "@types/jsdom": "^27.0.0",
     "@types/serve-static": "^2.2.0",
     "eslint": "^9.39.1",
     "eslint-plugin-playwright": "^2.3.0",
     "finalhandler": "^2.1.0",
     "gold-sight": "^0.0.193-alpha",
+    "jsdom": "^27.2.0",
     "playwright": "^1.56.1",
     "serve-static": "^2.2.0",
     "typescript": "~5.9.3",

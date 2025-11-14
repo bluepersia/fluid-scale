@@ -6,6 +6,7 @@ import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { PlaywrightBlueprint, PlaywrightPage } from "./index.types";
+import { generateJSDOMDocument } from "../src/parsing/jsdom/jsonBuilder";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +27,11 @@ const realProjectsData: PlaywrightBlueprint[] = [
     useServer: true,
   },
 ];
+
+const JSDOMDocs = realProjectsData.map(({ htmlFilePath }, index) => {
+  const finalPath = path.resolve(__dirname, htmlFilePath, "index.html");
+  return { doc: generateJSDOMDocument([finalPath]), index };
+});
 
 async function startStaticServer(folder: string) {
   const serve = serveStatic(path.resolve(folder), { index: ["index.html"] });
@@ -153,4 +159,5 @@ export {
   startBrowserPage,
   closeBrowserPage,
   onLoadBrowserPage,
+  JSDOMDocs,
 };
