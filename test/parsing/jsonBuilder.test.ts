@@ -42,8 +42,8 @@ describe("generateJSDOMDocument", () => {
     const document = generateJSDOMDocument(["test/golden-master/0/index.html"]);
     expect(document).toBeDefined();
     expect(document.styleSheets).toHaveLength(3);
-    expect(document.styleSheets[0].cssRules).toHaveLength(6);
-    expect(document.styleSheets[1].cssRules).toHaveLength(1);
-    expect(document.styleSheets[2].cssRules).toHaveLength(14);
+    expect(document.styleSheets[0].cssRules).toHaveLength(7);
+    expect(document.styleSheets[1].cssRules).toHaveLength(2);
+    expect(document.styleSheets[2].cssRules).toHaveLength(15);
   });
 });

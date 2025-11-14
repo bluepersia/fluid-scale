@@ -9,12 +9,29 @@ import AssertionMaster, { type AssertionChainForFunc } from "gold-sight";
 import type { Master, State } from "./index.types";
 import {
   cloneDoc,
+  isStyleSheetAccessible,
   wrap,
 } from "../../../../src/parsing/serialization/docCloner";
 
 const cloneDocAssertionChain: AssertionChainForFunc<State, typeof cloneDoc> = {
   "should clone the document": (state, args, result) => {
     expect(result).toEqual(state.master!.docClone);
+  },
+};
+
+const isStyleSheetAccessibleAssertionChain: AssertionChainForFunc<
+  State,
+  typeof isStyleSheetAccessible
+> = {
+  "should check if the style sheet is accessible": (state, args, result) => {
+    if (
+      args[0].cssRules[0] instanceof CSSStyleRule &&
+      args[0].cssRules[0].selectorText === "#accessible"
+    ) {
+      expect(result).toBe(true);
+    } else {
+      expect(result).toBe(false);
+    }
   },
 };
 
@@ -37,11 +54,15 @@ class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
   }
 
   cloneDoc = this.wrapTopFn(cloneDoc, "cloneDoc");
+  isStyleSheetAccessible = this.wrapTopFn(
+    isStyleSheetAccessible,
+    "isStyleSheetAccessible"
+  );
 }
 const assertionMaster = new DocClonerAssertionMaster();
 
 function wrapAll() {
-  wrap(assertionMaster.cloneDoc);
+  wrap(assertionMaster.cloneDoc, assertionMaster.isStyleSheetAccessible);
 }
 
 export { assertionMaster, wrapAll };
