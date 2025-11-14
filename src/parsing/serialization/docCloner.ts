@@ -8,7 +8,7 @@ import {
 import { FLUID_PROPERTY_NAMES, SPECIAL_PROPERTIES } from "./docClonerConsts";
 import type { CloneDocContext } from "./index.types";
 
-function cloneDoc(doc: Document, ctx: CloneDocContext) {
+let cloneDoc = (doc: Document, ctx: CloneDocContext) => {
   const docClone = new DocClone(ctx);
 
   const accessibleStyleSheets = Array.from(doc.styleSheets).filter((sheet) => {
@@ -65,6 +65,10 @@ function cloneDoc(doc: Document, ctx: CloneDocContext) {
     }
   }
   return docClone;
+};
+
+function wrap(cloneDocWrapped: typeof cloneDoc) {
+  cloneDoc = cloneDocWrapped;
 }
 
-export { cloneDoc };
+export { cloneDoc, wrap };
