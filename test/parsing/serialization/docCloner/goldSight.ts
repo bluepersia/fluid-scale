@@ -13,12 +13,13 @@ import AssertionMaster, {
 import type { Master, State } from "./index.types";
 import {
   cloneDoc,
+  cloneMediaRule,
   cloneStyleRule,
   cloneStyleSheets,
   isStyleSheetAccessible,
   wrap,
 } from "../../../../src/parsing/serialization/docCloner";
-import { findStyleRule } from "./controller";
+import { findMediaRule, findStyleRule } from "./controller";
 
 const cloneDocAssertionChain: AssertionChainForFunc<State, typeof cloneDoc> = {
   "should clone the document": (state, args, result) => {
@@ -67,11 +68,29 @@ const cloneStyleRuleAssertionChain: AssertionChainForFunc<
     }),
 };
 
+const cloneMediaRuleAssertionChain: AssertionChainForFunc<
+  State,
+  typeof cloneMediaRule
+> = {
+  "should clone the media rule": (state, args, result) =>
+    withEventNames(args, ["cloneMediaRule", "omitMediaRule"], (events) => {
+      if (events.cloneMediaRule) {
+        expect(result).toEqual(
+          findMediaRule(state.master!.docClone, state.mediaRuleIndex)
+        );
+      } else if (events.omitMediaRule) {
+        expect(result).toBeNull();
+      } else {
+        throw new Error("Unexpected event");
+      }
+    }),
+};
 const defaultAssertions = {
   cloneDoc: cloneDocAssertionChain,
   isStyleSheetAccessible: isStyleSheetAccessibleAssertionChain,
   cloneStyleSheets: cloneStyleSheetsAssertionChain,
   cloneStyleRule: cloneStyleRuleAssertionChain,
+  cloneMediaRule: cloneMediaRuleAssertionChain,
 };
 
 class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
@@ -127,6 +146,18 @@ class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
         if (events.cloneStyleRule) state.styleRuleIndex++;
       }),
   });
+  cloneMediaRule = this.wrapFn(cloneMediaRule, "cloneMediaRule", {
+    getAddress: (state, args, result) => {
+      return {
+        mediaRuleIndex: state.mediaRuleIndex,
+        mediaText: args[0].media.mediaText,
+      };
+    },
+    post: (state, args, result) =>
+      withEventNames(args, ["cloneMediaRule", "omitMediaRule"], (events) => {
+        if (events.cloneMediaRule) state.mediaRuleIndex++;
+      }),
+  });
 }
 const assertionMaster = new DocClonerAssertionMaster();
 
@@ -135,7 +166,8 @@ function wrapAll() {
     assertionMaster.cloneDoc,
     assertionMaster.isStyleSheetAccessible,
     assertionMaster.cloneStyleSheets,
-    assertionMaster.cloneStyleRule
+    assertionMaster.cloneStyleRule,
+    assertionMaster.cloneMediaRule
   );
 }
 

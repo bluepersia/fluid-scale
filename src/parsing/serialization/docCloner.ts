@@ -63,18 +63,8 @@ function cloneRules(rules: CSSRuleList, ctx: CloneRulesContext): RuleClone[] {
         result.push(styleRuleClone);
       }
     } else if (rule.type === MEDIA_RULE_TYPE) {
-      const mediaRule = rule as CSSMediaRule;
-      const mediaRuleClone = new MediaRuleClone(ctx);
-
-      const match = mediaRule.media.mediaText.match(/\(min-width:\s*(\d+)px\)/);
-
-      if (match) {
-        const width: number = Number(match[1]);
-        mediaRuleClone.minWidth = width;
-        mediaRuleClone.rules = cloneRules(mediaRule.cssRules, {
-          ...ctx,
-          mediaWidth: width,
-        }) as StyleRuleClone[];
+      const mediaRuleClone = cloneMediaRule(rule as CSSMediaRule, ctx);
+      if (mediaRuleClone) {
         result.push(mediaRuleClone);
       }
     }
@@ -152,16 +142,45 @@ function normalizeSelector(selector: string): string {
     .trim();
 }
 
+let cloneMediaRule = (
+  mediaRule: CSSMediaRule,
+  ctx: CloneRulesContext
+): MediaRuleClone | null => {
+  const { event } = ctx;
+  const mediaRuleClone = new MediaRuleClone(ctx);
+
+  const match = mediaRule.media.mediaText.match(/\(min-width:\s*(\d+)px\)/);
+
+  if (match) {
+    const width: number = Number(match[1]);
+    mediaRuleClone.minWidth = width;
+    mediaRuleClone.rules = cloneRules(mediaRule.cssRules, {
+      ...ctx,
+      mediaWidth: width,
+    }) as StyleRuleClone[];
+    if (dev) {
+      event?.emit("cloneMediaRule", ctx, { mediaRuleClone });
+    }
+    return mediaRuleClone;
+  }
+  if (dev) {
+    event?.emit("omitMediaRule", ctx, { why: "noMinWidth" });
+  }
+  return null;
+};
+
 function wrap(
   cloneDocWrapped: typeof cloneDoc,
   isStyleSheetAccessibleWrapped: typeof isStyleSheetAccessible,
   cloneStyleSheetsWrapped: typeof cloneStyleSheets,
-  cloneStyleRuleWrapped: typeof cloneStyleRule
+  cloneStyleRuleWrapped: typeof cloneStyleRule,
+  cloneMediaRuleWrapped: typeof cloneMediaRule
 ) {
   cloneDoc = cloneDocWrapped;
   isStyleSheetAccessible = isStyleSheetAccessibleWrapped;
   cloneStyleSheets = cloneStyleSheetsWrapped;
   cloneStyleRule = cloneStyleRuleWrapped;
+  cloneMediaRule = cloneMediaRuleWrapped;
 }
 
 export {
@@ -170,4 +189,5 @@ export {
   cloneStyleSheets,
   wrap,
   cloneStyleRule,
+  cloneMediaRule,
 };
