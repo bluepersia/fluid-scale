@@ -6,7 +6,11 @@ import {
   SheetClone,
   StyleRuleClone,
 } from "./docClone";
-import { FLUID_PROPERTY_NAMES, SPECIAL_PROPERTIES } from "./docClonerConsts";
+import {
+  FLUID_PROPERTY_NAMES,
+  SHORTHAND_PROPERTIES,
+  SPECIAL_PROPERTIES,
+} from "./docClonerConsts";
 import type { CloneDocContext } from "./index.types";
 
 let cloneDoc = (doc: Document, ctx: CloneDocContext) => {
@@ -43,8 +47,12 @@ function cloneRules(rules: CSSRuleList, ctx: CloneDocContext): RuleClone[] {
       for (let i = 0; i < styleRule.style.length; i++) {
         const property = styleRule.style[i];
         if (FLUID_PROPERTY_NAMES.has(property)) {
-          styleRuleClone.style[property] =
-            styleRule.style.getPropertyValue(property);
+          if (SHORTHAND_PROPERTIES.hasOwnProperty(property)) {
+            const shorthand = SHORTHAND_PROPERTIES[property];
+          } else {
+            styleRuleClone.style[property] =
+              styleRule.style.getPropertyValue(property);
+          }
         } else if (SPECIAL_PROPERTIES.has(property)) {
           styleRuleClone.specialProps[property] =
             styleRule.style.getPropertyValue(property);
