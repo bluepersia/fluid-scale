@@ -1,4 +1,5 @@
 import { MEDIA_RULE_TYPE, STYLE_RULE_TYPE } from "../../index.types";
+import { splitBySpaces } from "../../utils/stringHelpers";
 import {
   DocClone,
   MediaRuleClone,
@@ -42,16 +43,29 @@ function cloneRules(rules: CSSRuleList, ctx: CloneDocContext): RuleClone[] {
     if (rule.type === STYLE_RULE_TYPE) {
       const styleRule = rule as CSSStyleRule;
       const styleRuleClone = new StyleRuleClone(ctx);
-      styleRuleClone.selector = styleRule.selectorText;
+      styleRuleClone.selector = normalizeSelector(styleRule.selectorText);
 
       for (let i = 0; i < styleRule.style.length; i++) {
         const property = styleRule.style[i];
         if (FLUID_PROPERTY_NAMES.has(property)) {
           if (SHORTHAND_PROPERTIES.hasOwnProperty(property)) {
             const shorthand = SHORTHAND_PROPERTIES[property];
+            const values = splitBySpaces(
+              styleRule.style.getPropertyValue(property)
+            );
+            const valueCount = values.length;
+            const valueMap = shorthand.get(valueCount);
+            if (valueMap) {
+              for (const [index, properties] of valueMap.entries()) {
+                for (const property of properties) {
+                  styleRuleClone.style[property] = normalizeZero(values[index]);
+                }
+              }
+            }
           } else {
-            styleRuleClone.style[property] =
-              styleRule.style.getPropertyValue(property);
+            styleRuleClone.style[property] = normalizeZero(
+              styleRule.style.getPropertyValue(property)
+            );
           }
         } else if (SPECIAL_PROPERTIES.has(property)) {
           styleRuleClone.specialProps[property] =
@@ -86,6 +100,21 @@ function cloneRules(rules: CSSRuleList, ctx: CloneDocContext): RuleClone[] {
     }
   }
   return result.filter((rule) => rule !== null);
+}
+
+function normalizeZero(input: string): string {
+  return input.replace(
+    /(?<![\d.])0+(?:\.0+)?(?![\d.])(?!(px|em|rem|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc)\b)/g,
+    "0px"
+  );
+}
+
+function normalizeSelector(selector: string): string {
+  return selector
+    .replace(/\*::(before|after)\b/g, "::$1")
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function wrap(cloneDocWrapped: typeof cloneDoc) {
