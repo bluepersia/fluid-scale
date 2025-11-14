@@ -13,6 +13,7 @@ type CloneRulesContext = CloneDocContext & {
 };
 
 type ProcessStylePropertyContext = CloneRulesContext & {
+  styleRule: CSSStyleRule;
   propsResult: ProcessStylePropertyResult;
 };
 

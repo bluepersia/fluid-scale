@@ -95,6 +95,7 @@ let cloneStyleRule = (
     propsResult = processStyleProperty(property, value, {
       ...ctx,
       propsResult,
+      styleRule,
     });
   }
   styleRuleClone.style = propsResult.style;
@@ -125,22 +126,10 @@ let processStyleProperty = (
   const { propsResult, event } = ctx;
   if (FLUID_PROPERTY_NAMES.has(property)) {
     if (SHORTHAND_PROPERTIES.hasOwnProperty(property)) {
-      const shorthand = SHORTHAND_PROPERTIES[property];
-      const values = splitBySpaces(value);
-      const valueCount = values.length;
-      const valueMap = shorthand.get(valueCount);
-      if (valueMap) {
-        const style: Record<string, string> = { ...propsResult.style };
-        for (const [index, properties] of valueMap.entries()) {
-          for (const property of properties) {
-            style[property] = normalizeZero(values[index]);
-          }
-        }
-        if (dev) {
-          event?.emit("expandShorthand", ctx, { property, value });
-        }
-        return { ...propsResult, style };
-      }
+      return {
+        style: expandShorthandProperty(property, value, ctx),
+        specialProps: propsResult.specialProps,
+      };
     } else {
       const style: Record<string, string> = { ...propsResult.style };
       style[property] = normalizeZero(value);
@@ -163,6 +152,34 @@ let processStyleProperty = (
     event?.emit("omitStyleProp", ctx, { why: "notFluidOrSpecial" });
   }
   return propsResult;
+};
+
+let expandShorthandProperty = (
+  property: string,
+  value: string,
+  ctx: ProcessStylePropertyContext
+): Record<string, string> => {
+  const { propsResult, event } = ctx;
+  const shorthand = SHORTHAND_PROPERTIES[property];
+  const values = splitBySpaces(value);
+  const valueCount = values.length;
+  const valueMap = shorthand.get(valueCount);
+  if (valueMap) {
+    const style: Record<string, string> = { ...propsResult.style };
+    for (const [index, properties] of valueMap.entries()) {
+      for (const property of properties) {
+        style[property] = normalizeZero(values[index]);
+      }
+    }
+    if (dev) {
+      event?.emit("expandShorthand", ctx, { property, value });
+    }
+    return style;
+  }
+  if (dev) {
+    event?.emit("omitShorthand", ctx, { why: "noValueMap" });
+  }
+  return propsResult.style;
 };
 
 function normalizeZero(input: string): string {
@@ -213,7 +230,8 @@ function wrap(
   cloneStyleSheetsWrapped: typeof cloneStyleSheets,
   cloneStyleRuleWrapped: typeof cloneStyleRule,
   cloneMediaRuleWrapped: typeof cloneMediaRule,
-  processStylePropertyWrapped: typeof processStyleProperty
+  processStylePropertyWrapped: typeof processStyleProperty,
+  expandShorthandPropertyWrapped: typeof expandShorthandProperty
 ) {
   cloneDoc = cloneDocWrapped;
   isStyleSheetAccessible = isStyleSheetAccessibleWrapped;
@@ -221,6 +239,7 @@ function wrap(
   cloneStyleRule = cloneStyleRuleWrapped;
   cloneMediaRule = cloneMediaRuleWrapped;
   processStyleProperty = processStylePropertyWrapped;
+  expandShorthandProperty = expandShorthandPropertyWrapped;
 }
 
 export {
@@ -231,4 +250,5 @@ export {
   cloneStyleRule,
   cloneMediaRule,
   processStyleProperty,
+  expandShorthandProperty,
 };

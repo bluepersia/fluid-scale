@@ -16,6 +16,7 @@ import {
   cloneMediaRule,
   cloneStyleRule,
   cloneStyleSheets,
+  expandShorthandProperty,
   isStyleSheetAccessible,
   processStyleProperty,
   wrap,
@@ -58,6 +59,7 @@ const cloneStyleRuleAssertionChain: AssertionChainForFunc<
 > = {
   "should clone the style rule": (state, args, result) =>
     withEventNames(args, ["cloneStyleRule", "omitStyleRule"], (events) => {
+      expect(Object.keys(events).length).toBe(1);
       if (events.cloneStyleRule) {
         expect(result).toEqual(
           findStyleRule(state.master!.docClone, state.styleRuleIndex)
@@ -94,6 +96,8 @@ const processStylePropertyAssertionChain: AssertionChainForFunc<
         "omitStyleProp",
       ],
       (events) => {
+        expect(Object.keys(events).length).toBe(1);
+
         const [property, value, ctx] = args;
         const masterRule = findStyleRule(
           state.master!.docClone,
@@ -116,12 +120,35 @@ const processStylePropertyAssertionChain: AssertionChainForFunc<
     ),
 };
 
+const expandShorthandAssertionChain: AssertionChainForFunc<
+  State,
+  typeof expandShorthandProperty
+> = {
+  "should expand the shorthand property": (state, args, result) =>
+    withEventNames(args, ["expandShorthand"], (events) => {
+      expect(Object.keys(events).length).toBe(1);
+
+      const [property] = args;
+      const masterRule = findStyleRule(
+        state.master!.docClone,
+        state.styleRuleIndex - 1
+      )!;
+      if (events.expandShorthand) {
+        assertShorthandExpansion(result, masterRule.style, property);
+      } else {
+        throw new Error("Unexpected event");
+      }
+    }),
+};
+
 const cloneMediaRuleAssertionChain: AssertionChainForFunc<
   State,
   typeof cloneMediaRule
 > = {
   "should clone the media rule": (state, args, result) =>
     withEventNames(args, ["cloneMediaRule", "omitMediaRule"], (events) => {
+      expect(Object.keys(events).length).toBe(1);
+
       if (events.cloneMediaRule) {
         expect(result).toEqual(
           findMediaRule(state.master!.docClone, state.mediaRuleIndex)
@@ -139,6 +166,7 @@ const defaultAssertions = {
   cloneStyleSheets: cloneStyleSheetsAssertionChain,
   cloneStyleRule: cloneStyleRuleAssertionChain,
   processStyleProperty: processStylePropertyAssertionChain,
+  expandShorthandProperty: expandShorthandAssertionChain,
   cloneMediaRule: cloneMediaRuleAssertionChain,
 };
 
@@ -197,7 +225,16 @@ class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
   });
   processStyleProperty = this.wrapFn(
     processStyleProperty,
-    "processStyleProperty"
+    "processStyleProperty",
+    {
+      getAddress: (state, args, result) => {
+        return {
+          selector: args[2].styleRule.selectorText,
+          property: args[0],
+          value: args[1],
+        };
+      },
+    }
   );
   cloneMediaRule = this.wrapFn(cloneMediaRule, "cloneMediaRule", {
     getAddress: (state, args, result) => {
@@ -211,6 +248,19 @@ class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
         if (events.cloneMediaRule) state.mediaRuleIndex++;
       }),
   });
+  expandShorthandProperty = this.wrapFn(
+    expandShorthandProperty,
+    "expandShorthandProperty",
+    {
+      getAddress: (state, args, result) => {
+        return {
+          selector: args[2].styleRule.selectorText,
+          property: args[0],
+          value: args[1],
+        };
+      },
+    }
+  );
 }
 const assertionMaster = new DocClonerAssertionMaster();
 
@@ -221,7 +271,8 @@ function wrapAll() {
     assertionMaster.cloneStyleSheets,
     assertionMaster.cloneStyleRule,
     assertionMaster.cloneMediaRule,
-    assertionMaster.processStyleProperty
+    assertionMaster.processStyleProperty,
+    assertionMaster.expandShorthandProperty
   );
 }
 
