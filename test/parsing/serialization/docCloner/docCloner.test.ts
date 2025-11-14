@@ -1,5 +1,9 @@
 import { describe, test, beforeAll, afterAll } from "vitest";
-import { initPlaywrightPages, teardownPlaywrightPages } from "../../../setup";
+import {
+  initPlaywrightPages,
+  JSDOMDocs,
+  teardownPlaywrightPages,
+} from "../../../setup";
 import { collection } from "./collection.ts";
 import type { PlaywrightPage } from "../../../index.types";
 import { type AssertionBlueprint } from "gold-sight";
@@ -27,6 +31,7 @@ describe("docCloner", () => {
         (window as any).cloneDoc(document, {
           ...(window as any).makeDefaultGlobal(),
           ...(window as any).makeEventContext(),
+          isBrowser: true,
         });
         const queue = (window as any).docClonerAssertionMaster.getQueue();
         return Array.from(queue.entries());
@@ -37,4 +42,21 @@ describe("docCloner", () => {
     assertionMaster.setQueueFromArray(queue);
     assertionMaster.assertQueue({ master });
   });
+
+  test.each(collection)(
+    "should clone the document with JSDOM",
+    async (master) => {
+      const { index } = master;
+      const { doc } = JSDOMDocs[index];
+
+      assertionMaster.master = master;
+      cloneDoc(doc, {
+        ...makeDefaultGlobal(),
+        ...makeEventContext(),
+        isBrowser: false,
+      });
+
+      assertionMaster.assertQueue();
+    }
+  );
 });

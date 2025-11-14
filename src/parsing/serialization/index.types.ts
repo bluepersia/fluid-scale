@@ -6,6 +6,7 @@ type CloneDocContext = Global &
     counter?: {
       orderID: number;
     };
+    isBrowser: boolean;
   };
 
 export { type CloneDocContext };
