@@ -25,8 +25,8 @@ describe("docCloner", () => {
       (master) => {
         (window as any).docClonerAssertionMaster.master = master;
         (window as any).cloneDoc(document, {
-          ...makeDefaultGlobal(),
-          ...makeEventContext(),
+          ...(window as any).makeDefaultGlobal(),
+          ...(window as any).makeEventContext(),
         });
         const queue = (window as any).docClonerAssertionMaster.getQueue();
         return Array.from(queue.entries());

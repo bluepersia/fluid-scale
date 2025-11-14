@@ -55,9 +55,10 @@ class RuleClone {
 }
 
 class StyleRuleClone extends RuleClone {
-  selectorText: string = "";
+  selector: string = "";
   style: Record<string, string> = {};
   specialProps: Record<string, string> = {};
+  orderID: number = 0;
 
   constructor(global: Global) {
     super(STYLE_RULE_TYPE, global);

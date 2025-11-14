@@ -1,9 +1,12 @@
-import { DocClone } from "../../../../../../src/parsing/serialization/docClone";
+import {
+  DocClone,
+  StyleRuleClone,
+} from "../../../../../../src/parsing/serialization/docClone";
 import { counter } from "./orderIDCounter";
 function writeGlobal(docClone: DocClone) {
   const sheet = docClone.addSheet();
 
-  let styleRule;
+  let styleRule: StyleRuleClone | null;
 
   styleRule = sheet.addStyleRule();
   styleRule.selector = "html";

@@ -1,7 +1,7 @@
 import type { DocClone } from "../../../../src/parsing/serialization/docClone";
 import type { Master } from "../../../index.types";
 
-type GoldSightState = {
+type State = {
   master?: DocClonerMaster;
   sheetIndex: number;
   rulesIndex: number;
@@ -14,4 +14,4 @@ type DocClonerMaster = Master & {
   docClone: DocClone;
 };
 
-export type { GoldSightState, DocClonerMaster };
+export type { State, DocClonerMaster as Master };

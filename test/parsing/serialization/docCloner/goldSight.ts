@@ -6,16 +6,13 @@ if (process.env.NODE_ENV === "test") {
 }
 
 import AssertionMaster, { type AssertionChainForFunc } from "gold-sight";
-import type { DocClonerMaster, GoldSightState } from "./index.types";
+import type { Master, State } from "./index.types";
 import {
   cloneDoc,
   wrap,
 } from "../../../../src/parsing/serialization/docCloner";
 
-const cloneDocAssertionChain: AssertionChainForFunc<
-  GoldSightState,
-  typeof cloneDoc
-> = {
+const cloneDocAssertionChain: AssertionChainForFunc<State, typeof cloneDoc> = {
   "should clone the document": (state, args, result) => {
     expect(result).toEqual(state.master!.docClone);
   },
@@ -25,14 +22,11 @@ const defaultAssertions = {
   cloneDoc: cloneDocAssertionChain,
 };
 
-class DocClonerAssertionMaster extends AssertionMaster<
-  GoldSightState,
-  DocClonerMaster
-> {
+class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
   constructor() {
     super(defaultAssertions, "cloneDoc", {});
   }
-  newState(): GoldSightState {
+  newState(): State {
     return {
       sheetIndex: 0,
       rulesIndex: 0,
