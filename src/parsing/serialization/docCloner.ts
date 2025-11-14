@@ -12,7 +12,12 @@ import {
   SHORTHAND_PROPERTIES,
   SPECIAL_PROPERTIES,
 } from "./docClonerConsts";
-import type { CloneDocContext, CloneRulesContext } from "./index.types";
+import type {
+  CloneDocContext,
+  CloneRulesContext,
+  ProcessStylePropertyContext,
+  ProcessStylePropertyResult,
+} from "./index.types";
 
 let cloneDoc = (doc: Document, ctx: CloneDocContext) => {
   ctx.counter = { orderID: -1 };
@@ -80,35 +85,20 @@ let cloneStyleRule = (
   const styleRuleClone = new StyleRuleClone(ctx);
   styleRuleClone.selector = normalizeSelector(styleRule.selectorText);
 
+  let propsResult: ProcessStylePropertyResult = {
+    style: {},
+    specialProps: {},
+  };
   for (let i = 0; i < styleRule.style.length; i++) {
     const property = styleRule.style[i];
-    if (FLUID_PROPERTY_NAMES.has(property)) {
-      if (SHORTHAND_PROPERTIES.hasOwnProperty(property)) {
-        const shorthand = SHORTHAND_PROPERTIES[property];
-        const values = splitBySpaces(
-          styleRule.style.getPropertyValue(property)
-        );
-        const valueCount = values.length;
-        const valueMap = shorthand.get(valueCount);
-        if (valueMap) {
-          for (const [index, properties] of valueMap.entries()) {
-            for (const property of properties) {
-              styleRuleClone.style[property] = normalizeZero(values[index]);
-            }
-          }
-        }
-      } else {
-        styleRuleClone.style[property] = normalizeZero(
-          styleRule.style.getPropertyValue(property)
-        );
-      }
-    } else if (SPECIAL_PROPERTIES.has(property)) {
-      styleRuleClone.specialProps[property] =
-        styleRule.style.getPropertyValue(property);
-    } else {
-      continue;
-    }
+    const value = styleRule.style.getPropertyValue(property);
+    propsResult = processStyleProperty(property, value, {
+      ...ctx,
+      propsResult,
+    });
   }
+  styleRuleClone.style = propsResult.style;
+  styleRuleClone.specialProps = propsResult.specialProps;
   if (
     Object.keys(styleRuleClone.style).length > 0 ||
     Object.keys(styleRuleClone.specialProps).length > 0
@@ -125,6 +115,54 @@ let cloneStyleRule = (
     event?.emit("omitStyleRule", ctx, { why: "noProps" });
   }
   return null;
+};
+
+let processStyleProperty = (
+  property: string,
+  value: string,
+  ctx: ProcessStylePropertyContext
+): ProcessStylePropertyResult => {
+  const { propsResult, event } = ctx;
+  if (FLUID_PROPERTY_NAMES.has(property)) {
+    if (SHORTHAND_PROPERTIES.hasOwnProperty(property)) {
+      const shorthand = SHORTHAND_PROPERTIES[property];
+      const values = splitBySpaces(value);
+      const valueCount = values.length;
+      const valueMap = shorthand.get(valueCount);
+      if (valueMap) {
+        const style: Record<string, string> = { ...propsResult.style };
+        for (const [index, properties] of valueMap.entries()) {
+          for (const property of properties) {
+            style[property] = normalizeZero(values[index]);
+          }
+        }
+        if (dev) {
+          event?.emit("expandShorthand", ctx, { property, value });
+        }
+        return { ...propsResult, style };
+      }
+    } else {
+      const style: Record<string, string> = { ...propsResult.style };
+      style[property] = normalizeZero(value);
+      if (dev) {
+        event?.emit("cloneStyleProp", ctx, { property, value });
+      }
+      return { ...propsResult, style };
+    }
+  } else if (SPECIAL_PROPERTIES.has(property)) {
+    const specialProps: Record<string, string> = {
+      ...propsResult.specialProps,
+    };
+    specialProps[property] = value;
+    if (dev) {
+      event?.emit("cloneSpecialProp", ctx, { property, value });
+    }
+    return { ...propsResult, specialProps };
+  }
+  if (dev) {
+    event?.emit("omitStyleProp", ctx, { why: "notFluidOrSpecial" });
+  }
+  return propsResult;
 };
 
 function normalizeZero(input: string): string {
@@ -174,13 +212,15 @@ function wrap(
   isStyleSheetAccessibleWrapped: typeof isStyleSheetAccessible,
   cloneStyleSheetsWrapped: typeof cloneStyleSheets,
   cloneStyleRuleWrapped: typeof cloneStyleRule,
-  cloneMediaRuleWrapped: typeof cloneMediaRule
+  cloneMediaRuleWrapped: typeof cloneMediaRule,
+  processStylePropertyWrapped: typeof processStyleProperty
 ) {
   cloneDoc = cloneDocWrapped;
   isStyleSheetAccessible = isStyleSheetAccessibleWrapped;
   cloneStyleSheets = cloneStyleSheetsWrapped;
   cloneStyleRule = cloneStyleRuleWrapped;
   cloneMediaRule = cloneMediaRuleWrapped;
+  processStyleProperty = processStylePropertyWrapped;
 }
 
 export {
@@ -190,4 +230,5 @@ export {
   wrap,
   cloneStyleRule,
   cloneMediaRule,
+  processStyleProperty,
 };

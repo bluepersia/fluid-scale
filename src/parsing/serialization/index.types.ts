@@ -12,4 +12,18 @@ type CloneRulesContext = CloneDocContext & {
   mediaWidth?: number;
 };
 
-export { type CloneDocContext, type CloneRulesContext };
+type ProcessStylePropertyContext = CloneRulesContext & {
+  propsResult: ProcessStylePropertyResult;
+};
+
+type ProcessStylePropertyResult = {
+  style: Record<string, string>;
+  specialProps: Record<string, string>;
+};
+
+export {
+  type CloneDocContext,
+  type CloneRulesContext,
+  type ProcessStylePropertyContext,
+  type ProcessStylePropertyResult,
+};
