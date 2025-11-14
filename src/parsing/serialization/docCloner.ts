@@ -12,7 +12,7 @@ import {
   SHORTHAND_PROPERTIES,
   SPECIAL_PROPERTIES,
 } from "./docClonerConsts";
-import type { CloneDocContext } from "./index.types";
+import type { CloneDocContext, CloneRulesContext } from "./index.types";
 
 let cloneDoc = (doc: Document, ctx: CloneDocContext) => {
   ctx.counter = { orderID: -1 };
@@ -27,72 +27,6 @@ let cloneDoc = (doc: Document, ctx: CloneDocContext) => {
 
   return docClone;
 };
-
-function cloneRules(rules: CSSRuleList, ctx: CloneDocContext): RuleClone[] {
-  const result: RuleClone[] = [];
-
-  for (const rule of rules) {
-    if (rule.type === STYLE_RULE_TYPE) {
-      const styleRule = rule as CSSStyleRule;
-      const styleRuleClone = new StyleRuleClone(ctx);
-      styleRuleClone.selector = normalizeSelector(styleRule.selectorText);
-
-      for (let i = 0; i < styleRule.style.length; i++) {
-        const property = styleRule.style[i];
-        if (FLUID_PROPERTY_NAMES.has(property)) {
-          if (SHORTHAND_PROPERTIES.hasOwnProperty(property)) {
-            const shorthand = SHORTHAND_PROPERTIES[property];
-            const values = splitBySpaces(
-              styleRule.style.getPropertyValue(property)
-            );
-            const valueCount = values.length;
-            const valueMap = shorthand.get(valueCount);
-            if (valueMap) {
-              for (const [index, properties] of valueMap.entries()) {
-                for (const property of properties) {
-                  styleRuleClone.style[property] = normalizeZero(values[index]);
-                }
-              }
-            }
-          } else {
-            styleRuleClone.style[property] = normalizeZero(
-              styleRule.style.getPropertyValue(property)
-            );
-          }
-        } else if (SPECIAL_PROPERTIES.has(property)) {
-          styleRuleClone.specialProps[property] =
-            styleRule.style.getPropertyValue(property);
-        } else {
-          continue;
-        }
-      }
-      if (
-        Object.keys(styleRuleClone.style).length > 0 ||
-        Object.keys(styleRuleClone.specialProps).length > 0
-      ) {
-        ctx.counter!.orderID++;
-        styleRuleClone.orderID = ctx.counter!.orderID;
-        result.push(styleRuleClone);
-      }
-    } else if (rule.type === MEDIA_RULE_TYPE) {
-      const mediaRule = rule as CSSMediaRule;
-      const mediaRuleClone = new MediaRuleClone(ctx);
-
-      const match = mediaRule.media.mediaText.match(/\(min-width:\s*(\d+)px\)/);
-
-      if (match) {
-        const width: number = Number(match[1]);
-        mediaRuleClone.minWidth = width;
-        mediaRuleClone.rules = cloneRules(
-          mediaRule.cssRules,
-          ctx
-        ) as StyleRuleClone[];
-        result.push(mediaRuleClone);
-      }
-    }
-  }
-  return result.filter((rule) => rule !== null);
-}
 
 let isStyleSheetAccessible = (
   sheet: CSSStyleSheet,
@@ -119,6 +53,82 @@ let cloneStyleSheets = (
   return result;
 };
 
+function cloneRules(rules: CSSRuleList, ctx: CloneRulesContext): RuleClone[] {
+  const result: RuleClone[] = [];
+
+  for (const rule of rules) {
+    if (rule.type === STYLE_RULE_TYPE) {
+      const styleRuleClone = cloneStyleRule(rule as CSSStyleRule, ctx);
+      if (styleRuleClone) {
+        result.push(styleRuleClone);
+      }
+    } else if (rule.type === MEDIA_RULE_TYPE) {
+      const mediaRule = rule as CSSMediaRule;
+      const mediaRuleClone = new MediaRuleClone(ctx);
+
+      const match = mediaRule.media.mediaText.match(/\(min-width:\s*(\d+)px\)/);
+
+      if (match) {
+        const width: number = Number(match[1]);
+        mediaRuleClone.minWidth = width;
+        mediaRuleClone.rules = cloneRules(mediaRule.cssRules, {
+          ...ctx,
+          mediaWidth: width,
+        }) as StyleRuleClone[];
+        result.push(mediaRuleClone);
+      }
+    }
+  }
+  return result.filter((rule) => rule !== null);
+}
+
+let cloneStyleRule = (
+  styleRule: CSSStyleRule,
+  ctx: CloneRulesContext
+): StyleRuleClone | null => {
+  const styleRuleClone = new StyleRuleClone(ctx);
+  styleRuleClone.selector = normalizeSelector(styleRule.selectorText);
+
+  for (let i = 0; i < styleRule.style.length; i++) {
+    const property = styleRule.style[i];
+    if (FLUID_PROPERTY_NAMES.has(property)) {
+      if (SHORTHAND_PROPERTIES.hasOwnProperty(property)) {
+        const shorthand = SHORTHAND_PROPERTIES[property];
+        const values = splitBySpaces(
+          styleRule.style.getPropertyValue(property)
+        );
+        const valueCount = values.length;
+        const valueMap = shorthand.get(valueCount);
+        if (valueMap) {
+          for (const [index, properties] of valueMap.entries()) {
+            for (const property of properties) {
+              styleRuleClone.style[property] = normalizeZero(values[index]);
+            }
+          }
+        }
+      } else {
+        styleRuleClone.style[property] = normalizeZero(
+          styleRule.style.getPropertyValue(property)
+        );
+      }
+    } else if (SPECIAL_PROPERTIES.has(property)) {
+      styleRuleClone.specialProps[property] =
+        styleRule.style.getPropertyValue(property);
+    } else {
+      continue;
+    }
+  }
+  if (
+    Object.keys(styleRuleClone.style).length > 0 ||
+    Object.keys(styleRuleClone.specialProps).length > 0
+  ) {
+    ctx.counter!.orderID++;
+    styleRuleClone.orderID = ctx.counter!.orderID;
+    return styleRuleClone;
+  }
+  return null;
+};
+
 function normalizeZero(input: string): string {
   return input.replace(
     /(?<![\d.])0+(?:\.0+)?(?![\d.])(?!(px|em|rem|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc)\b)/g,
@@ -137,11 +147,19 @@ function normalizeSelector(selector: string): string {
 function wrap(
   cloneDocWrapped: typeof cloneDoc,
   isStyleSheetAccessibleWrapped: typeof isStyleSheetAccessible,
-  cloneStyleSheetsWrapped: typeof cloneStyleSheets
+  cloneStyleSheetsWrapped: typeof cloneStyleSheets,
+  cloneStyleRuleWrapped: typeof cloneStyleRule
 ) {
   cloneDoc = cloneDocWrapped;
   isStyleSheetAccessible = isStyleSheetAccessibleWrapped;
   cloneStyleSheets = cloneStyleSheetsWrapped;
+  cloneStyleRule = cloneStyleRuleWrapped;
 }
 
-export { cloneDoc, isStyleSheetAccessible, cloneStyleSheets, wrap };
+export {
+  cloneDoc,
+  isStyleSheetAccessible,
+  cloneStyleSheets,
+  wrap,
+  cloneStyleRule,
+};

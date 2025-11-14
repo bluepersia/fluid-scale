@@ -12,10 +12,12 @@ import AssertionMaster, {
 import type { Master, State } from "./index.types";
 import {
   cloneDoc,
+  cloneStyleRule,
   cloneStyleSheets,
   isStyleSheetAccessible,
   wrap,
 } from "../../../../src/parsing/serialization/docCloner";
+import { findStyleRule } from "./controller";
 
 const cloneDocAssertionChain: AssertionChainForFunc<State, typeof cloneDoc> = {
   "should clone the document": (state, args, result) => {
@@ -46,10 +48,22 @@ const cloneStyleSheetsAssertionChain: AssertionChainForFunc<
   },
 };
 
+const cloneStyleRuleAssertionChain: AssertionChainForFunc<
+  State,
+  typeof cloneStyleRule
+> = {
+  "should clone the style rule": (state, args, result) => {
+    expect(result).toEqual(
+      findStyleRule(state.master!.docClone, state.styleRuleIndex)
+    );
+  },
+};
+
 const defaultAssertions = {
   cloneDoc: cloneDocAssertionChain,
   isStyleSheetAccessible: isStyleSheetAccessibleAssertionChain,
   cloneStyleSheets: cloneStyleSheetsAssertionChain,
+  cloneStyleRule: cloneStyleRuleAssertionChain,
 };
 
 class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
@@ -90,6 +104,20 @@ class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
     }
   );
   cloneStyleSheets = this.wrapFn(cloneStyleSheets, "cloneStyleSheets");
+
+  cloneStyleRule = this.wrapFn(cloneStyleRule, "cloneStyleRule", {
+    getAddress: (state, args, result) => {
+      const mediaWidth = args[1].mediaWidth ? args[1].mediaWidth : "baseline";
+      return {
+        styleRuleIndex: state.styleRuleIndex,
+        selector: args[0].selectorText,
+        mediaWidth,
+      };
+    },
+    argsConverter: (args) => {
+      return { selectorText: args[0].selectorText };
+    },
+  });
 }
 const assertionMaster = new DocClonerAssertionMaster();
 
@@ -97,7 +125,8 @@ function wrapAll() {
   wrap(
     assertionMaster.cloneDoc,
     assertionMaster.isStyleSheetAccessible,
-    assertionMaster.cloneStyleSheets
+    assertionMaster.cloneStyleSheets,
+    assertionMaster.cloneStyleRule
   );
 }
 

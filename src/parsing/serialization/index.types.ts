@@ -1,12 +1,14 @@
-import type { EventContext } from "gold-sight";
 import type { Global } from "../../index.types";
 
-type CloneDocContext = Global &
-  EventContext & {
-    counter?: {
-      orderID: number;
-    };
-    isBrowser: boolean;
+type CloneDocContext = Global & {
+  counter?: {
+    orderID: number;
   };
+  isBrowser: boolean;
+};
 
-export { type CloneDocContext };
+type CloneRulesContext = CloneDocContext & {
+  mediaWidth?: number;
+};
+
+export { type CloneDocContext, type CloneRulesContext };

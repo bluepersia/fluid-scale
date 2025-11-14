@@ -7,9 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import type { PlaywrightBlueprint, PlaywrightPage } from "./index.types";
 import { generateJSDOMDocument } from "../src/parsing/jsdom/jsonBuilder";
-import { wrapAll as wrapAllCloneDoc } from "./parsing/serialization/docCloner/goldSight";
-
-wrapAllCloneDoc();
+// wrapAllCloneDoc is now called in globalSetup.ts
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
