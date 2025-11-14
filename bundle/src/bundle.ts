@@ -1,4 +1,5 @@
 import { getQueue, EventBus, makeEventContext } from "gold-sight";
+import { makeDefaultGlobal } from "../../src/utils/global";
 
 import {
   assertionMaster as docClonerAssertionMaster,
@@ -15,4 +16,5 @@ export {
   docClonerAssertionMaster,
   EventBus,
   makeEventContext,
+  makeDefaultGlobal,
 };

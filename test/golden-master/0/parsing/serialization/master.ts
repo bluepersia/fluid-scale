@@ -1,9 +1,9 @@
 import type { DocClonerMaster } from "../../../../parsing/serialization/docCloner/index.types";
 import { docClone } from "./docClone/docClone";
-const docClonerMaster: DocClonerMaster = {
+const master: DocClonerMaster = {
   index: 0,
   step: 0,
   docClone,
 };
 
-export { docClonerMaster };
+export { master };

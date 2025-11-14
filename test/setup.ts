@@ -107,6 +107,9 @@ async function onLoadBrowserPage(page: Page, blueprint?: PlaywrightBlueprint) {
 
     // @ts-expect-error global from IIFE bundle
     window.makeEventContext = window.FluidScale.makeEventContext;
+
+    // @ts-expect-error global from IIFE bundle
+    window.makeDefaultGlobal = window.FluidScale.makeDefaultGlobal;
   });
 }
 
