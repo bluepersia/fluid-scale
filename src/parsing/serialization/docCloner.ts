@@ -59,22 +59,16 @@ let cloneStyleSheets = (
 };
 
 function cloneRules(rules: CSSRuleList, ctx: CloneRulesContext): RuleClone[] {
-  const result: RuleClone[] = [];
-
-  for (const rule of rules) {
-    if (rule.type === STYLE_RULE_TYPE) {
-      const styleRuleClone = cloneStyleRule(rule as CSSStyleRule, ctx);
-      if (styleRuleClone) {
-        result.push(styleRuleClone);
+  return Array.from(rules)
+    .map((rule) => {
+      if (rule.type === STYLE_RULE_TYPE) {
+        return cloneStyleRule(rule as CSSStyleRule, ctx);
+      } else if (rule.type === MEDIA_RULE_TYPE) {
+        return cloneMediaRule(rule as CSSMediaRule, ctx);
       }
-    } else if (rule.type === MEDIA_RULE_TYPE) {
-      const mediaRuleClone = cloneMediaRule(rule as CSSMediaRule, ctx);
-      if (mediaRuleClone) {
-        result.push(mediaRuleClone);
-      }
-    }
-  }
-  return result.filter((rule) => rule !== null);
+      return null;
+    })
+    .filter((rule) => rule !== null);
 }
 
 let cloneStyleRule = (
