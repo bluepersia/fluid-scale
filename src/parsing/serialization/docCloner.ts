@@ -23,11 +23,8 @@ let cloneDoc = (doc: Document, ctx: CloneDocContext) => {
     isStyleSheetAccessible
   );
 
-  for (const sheet of accessibleStyleSheets) {
-    const sheetClone = new SheetClone(ctx);
-    sheetClone.rules = cloneRules(sheet.cssRules, ctx);
-    docClone.sheets.push(sheetClone);
-  }
+  docClone.sheets = cloneStyleSheets(accessibleStyleSheets, ctx);
+
   return docClone;
 };
 
@@ -97,13 +94,29 @@ function cloneRules(rules: CSSRuleList, ctx: CloneDocContext): RuleClone[] {
   return result.filter((rule) => rule !== null);
 }
 
-let isStyleSheetAccessible = (sheet: CSSStyleSheet): boolean => {
+let isStyleSheetAccessible = (
+  sheet: CSSStyleSheet,
+  _index: number
+): boolean => {
   try {
     const rules = sheet.cssRules;
     return rules ? true : false;
   } catch (error) {
     return false;
   }
+};
+
+let cloneStyleSheets = (
+  sheets: CSSStyleSheet[],
+  ctx: CloneDocContext
+): SheetClone[] => {
+  const result: SheetClone[] = [];
+  for (const sheet of sheets) {
+    const sheetClone = new SheetClone(ctx);
+    sheetClone.rules = cloneRules(sheet.cssRules, ctx);
+    result.push(sheetClone);
+  }
+  return result;
 };
 
 function normalizeZero(input: string): string {
@@ -123,10 +136,12 @@ function normalizeSelector(selector: string): string {
 
 function wrap(
   cloneDocWrapped: typeof cloneDoc,
-  isStyleSheetAccessibleWrapped: typeof isStyleSheetAccessible
+  isStyleSheetAccessibleWrapped: typeof isStyleSheetAccessible,
+  cloneStyleSheetsWrapped: typeof cloneStyleSheets
 ) {
   cloneDoc = cloneDocWrapped;
   isStyleSheetAccessible = isStyleSheetAccessibleWrapped;
+  cloneStyleSheets = cloneStyleSheetsWrapped;
 }
 
-export { cloneDoc, isStyleSheetAccessible, wrap };
+export { cloneDoc, isStyleSheetAccessible, cloneStyleSheets, wrap };

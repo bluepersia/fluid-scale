@@ -5,10 +5,14 @@ if (process.env.NODE_ENV === "test") {
   expect = (await import("vitest")).expect;
 }
 
-import AssertionMaster, { type AssertionChainForFunc } from "gold-sight";
+import AssertionMaster, {
+  AssertionChain,
+  type AssertionChainForFunc,
+} from "gold-sight";
 import type { Master, State } from "./index.types";
 import {
   cloneDoc,
+  cloneStyleSheets,
   isStyleSheetAccessible,
   wrap,
 } from "../../../../src/parsing/serialization/docCloner";
@@ -19,15 +23,13 @@ const cloneDocAssertionChain: AssertionChainForFunc<State, typeof cloneDoc> = {
   },
 };
 
-const isStyleSheetAccessibleAssertionChain: AssertionChainForFunc<
+const isStyleSheetAccessibleAssertionChain: AssertionChain<
   State,
-  typeof isStyleSheetAccessible
+  { selectorText: string },
+  boolean
 > = {
   "should check if the style sheet is accessible": (state, args, result) => {
-    if (
-      args[0].cssRules[0] instanceof CSSStyleRule &&
-      args[0].cssRules[0].selectorText === "#accessible"
-    ) {
+    if (args.selectorText === "#accessible") {
       expect(result).toBe(true);
     } else {
       expect(result).toBe(false);
@@ -35,8 +37,19 @@ const isStyleSheetAccessibleAssertionChain: AssertionChainForFunc<
   },
 };
 
+const cloneStyleSheetsAssertionChain: AssertionChainForFunc<
+  State,
+  typeof cloneStyleSheets
+> = {
+  "should clone the style sheets": (state, args, result) => {
+    expect(result).toEqual(state.master!.docClone.sheets);
+  },
+};
+
 const defaultAssertions = {
   cloneDoc: cloneDocAssertionChain,
+  isStyleSheetAccessible: isStyleSheetAccessibleAssertionChain,
+  cloneStyleSheets: cloneStyleSheetsAssertionChain,
 };
 
 class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
@@ -54,15 +67,38 @@ class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
   }
 
   cloneDoc = this.wrapTopFn(cloneDoc, "cloneDoc");
-  isStyleSheetAccessible = this.wrapTopFn(
+  isStyleSheetAccessible = this.wrapFn(
     isStyleSheetAccessible,
-    "isStyleSheetAccessible"
+    "isStyleSheetAccessible",
+    {
+      getAddress: (state, args, result) => {
+        return { sheetIndex: args[1] };
+      },
+      argsConverter: (args) => {
+        try {
+          const sheet = args[0] as CSSStyleSheet;
+          const firstRule = sheet.cssRules[0] as CSSStyleRule;
+          return {
+            selectorText: firstRule.selectorText,
+          };
+        } catch (error) {
+          return {
+            selectorText: "",
+          };
+        }
+      },
+    }
   );
+  cloneStyleSheets = this.wrapFn(cloneStyleSheets, "cloneStyleSheets");
 }
 const assertionMaster = new DocClonerAssertionMaster();
 
 function wrapAll() {
-  wrap(assertionMaster.cloneDoc, assertionMaster.isStyleSheetAccessible);
+  wrap(
+    assertionMaster.cloneDoc,
+    assertionMaster.isStyleSheetAccessible,
+    assertionMaster.cloneStyleSheets
+  );
 }
 
 export { assertionMaster, wrapAll };
