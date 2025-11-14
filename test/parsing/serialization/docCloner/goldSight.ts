@@ -50,4 +50,4 @@ function wrapAll() {
   wrap(assertionMaster.cloneDoc);
 }
 
-export { DocClonerAssertionMaster, wrapAll };
+export { assertionMaster, wrapAll };
