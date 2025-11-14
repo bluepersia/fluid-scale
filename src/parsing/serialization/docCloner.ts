@@ -1,7 +1,7 @@
 import { MEDIA_RULE_TYPE, STYLE_RULE_TYPE } from "../../index.types";
 import {
   DocClone,
-  MediaQueryClone,
+  MediaRuleClone,
   SheetClone,
   StyleRuleClone,
 } from "./docClone";
@@ -50,7 +50,7 @@ function cloneDoc(doc: Document, ctx: CloneDocContext) {
         }
       } else if (rule.type === MEDIA_RULE_TYPE) {
         const mediaRule = rule as CSSMediaRule;
-        const mediaRuleClone = new MediaQueryClone(ctx);
+        const mediaRuleClone = new MediaRuleClone(ctx);
 
         const match = mediaRule.media.mediaText.match(
           /\(min-width:\s*(\d+)px\)/

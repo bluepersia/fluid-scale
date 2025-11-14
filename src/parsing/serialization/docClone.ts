@@ -31,7 +31,7 @@ class SheetClone {
   }
 
   addMediaRule() {
-    const rule = new MediaQueryClone(this.#global);
+    const rule = new MediaRuleClone(this.#global);
     this.rules.push(rule);
     return rule;
   }
@@ -49,6 +49,9 @@ class RuleClone {
     this.#global = global;
     this.type = type;
   }
+  get global() {
+    return this.#global;
+  }
 }
 
 class StyleRuleClone extends RuleClone {
@@ -61,12 +64,19 @@ class StyleRuleClone extends RuleClone {
   }
 }
 
-class MediaQueryClone extends RuleClone {
+class MediaRuleClone extends RuleClone {
   minWidth: number = 0;
+  rules: StyleRuleClone[] = [];
 
   constructor(global: Global) {
     super(MEDIA_RULE_TYPE, global);
   }
+
+  addStyleRule() {
+    const rule = new StyleRuleClone(this.global);
+    this.rules.push(rule);
+    return rule;
+  }
 }
 
-export { DocClone, SheetClone, RuleClone, StyleRuleClone, MediaQueryClone };
+export { DocClone, SheetClone, RuleClone, StyleRuleClone, MediaRuleClone };
