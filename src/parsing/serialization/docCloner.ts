@@ -100,10 +100,7 @@ let cloneStyleRule = (
   }
   styleRuleClone.style = propsResult.style;
   styleRuleClone.specialProps = propsResult.specialProps;
-  if (
-    Object.keys(styleRuleClone.style).length > 0 ||
-    Object.keys(styleRuleClone.specialProps).length > 0
-  ) {
+  if (shouldIncludeStyleRule(styleRuleClone)) {
     ctx.counter!.orderID++;
     styleRuleClone.orderID = ctx.counter!.orderID;
 
@@ -117,6 +114,13 @@ let cloneStyleRule = (
   }
   return null;
 };
+
+function shouldIncludeStyleRule(styleRuleClone: StyleRuleClone): boolean {
+  return (
+    Object.keys(styleRuleClone.style).length > 0 ||
+    Object.keys(styleRuleClone.specialProps).length > 0
+  );
+}
 
 let processStyleProperty = (
   property: string,
@@ -251,4 +255,5 @@ export {
   cloneMediaRule,
   processStyleProperty,
   expandShorthandProperty,
+  shouldIncludeStyleRule,
 };
