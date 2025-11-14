@@ -86,6 +86,7 @@ let cloneStyleRule = (
   styleRule: CSSStyleRule,
   ctx: CloneRulesContext
 ): StyleRuleClone | null => {
+  const { event } = ctx;
   const styleRuleClone = new StyleRuleClone(ctx);
   styleRuleClone.selector = normalizeSelector(styleRule.selectorText);
 
@@ -124,7 +125,14 @@ let cloneStyleRule = (
   ) {
     ctx.counter!.orderID++;
     styleRuleClone.orderID = ctx.counter!.orderID;
+
+    if (dev) {
+      event?.emit("cloneStyleRule", ctx, { styleRuleClone });
+    }
     return styleRuleClone;
+  }
+  if (dev) {
+    event?.emit("omitStyleRule", ctx, { why: "noProps" });
   }
   return null;
 };

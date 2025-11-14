@@ -7,6 +7,7 @@ if (process.env.NODE_ENV === "test") {
 
 import AssertionMaster, {
   AssertionChain,
+  withEventNames,
   type AssertionChainForFunc,
 } from "gold-sight";
 import type { Master, State } from "./index.types";
@@ -52,11 +53,18 @@ const cloneStyleRuleAssertionChain: AssertionChainForFunc<
   State,
   typeof cloneStyleRule
 > = {
-  "should clone the style rule": (state, args, result) => {
-    expect(result).toEqual(
-      findStyleRule(state.master!.docClone, state.styleRuleIndex)
-    );
-  },
+  "should clone the style rule": (state, args, result) =>
+    withEventNames(args, ["cloneStyleRule", "omitStyleRule"], (events) => {
+      if (events.cloneStyleRule) {
+        expect(result).toEqual(
+          findStyleRule(state.master!.docClone, state.styleRuleIndex)
+        );
+      } else if (events.omitStyleRule) {
+        expect(result).toBeNull();
+      } else {
+        throw new Error("Unexpected event");
+      }
+    }),
 };
 
 const defaultAssertions = {
@@ -114,9 +122,10 @@ class DocClonerAssertionMaster extends AssertionMaster<State, Master> {
         mediaWidth,
       };
     },
-    argsConverter: (args) => {
-      return { selectorText: args[0].selectorText };
-    },
+    post: (state, args, result) =>
+      withEventNames(args, ["cloneStyleRule", "omitStyleRule"], (events) => {
+        if (events.cloneStyleRule) state.styleRuleIndex++;
+      }),
   });
 }
 const assertionMaster = new DocClonerAssertionMaster();
