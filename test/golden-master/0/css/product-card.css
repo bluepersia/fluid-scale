@@ -1,0 +1,138 @@
+.product-card {
+  font-size: 1rem;
+  background-color: #ffffff;
+  max-width: 24.5rem;
+  border-bottom-left-radius: 0.71rem;
+  border-bottom-right-radius: 0.71rem;
+  --sheetId: "product-card";
+}
+
+.product-card__img--desktop {
+  display: none;
+}
+
+.product-card__img--mobile {
+  border-top-left-radius: 0.71rem;
+  border-top-right-radius: 0.71rem;
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  object-position: 0 -5rem;
+  max-height: 17.14rem;
+}
+
+.product-card__content {
+  padding: 1.71rem;
+}
+
+.product-card__category {
+  font-size: 0.85em;
+  letter-spacing: 0.41rem;
+  text-transform: uppercase;
+  margin-bottom: 0.85rem;
+  color: #6c7289;
+  display: block;
+}
+
+.product-card__title {
+  font-family: "Fraunces", serif;
+  font-size: 2.28em;
+  line-height: 1em;
+  margin-bottom: 1.14rem;
+}
+
+.product-card__description {
+  line-height: 1.64em;
+  color: #6c7289;
+  margin-bottom: 1.71rem;
+  font-size: 1em;
+}
+
+.product-card__price {
+  display: flex;
+  align-items: center;
+  gap: 1.35rem;
+  margin-bottom: 0;
+}
+
+.product-card__price--actual,
+.product-card__price--original {
+  font-family: "Fraunces", serif;
+}
+
+.product-card__price--actual {
+  color: var(--color-green);
+  font-size: 2.28em;
+  font-weight: bold;
+}
+
+.product-card__price--original {
+  font-size: 0.92em;
+  color: #6c7289;
+  text-decoration: line-through;
+}
+
+.product-card__button {
+  display: block;
+  width: 100%;
+  background-color: var(--color-green);
+  border: none;
+  color: white;
+  font-family: inherit;
+  font-weight: bold;
+  border-radius: 0.57rem;
+  padding: 1.07rem;
+  margin-top: 1.42rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.product-card__button:hover {
+  background-color: #1a4032;
+}
+
+@media (min-width: 600px) {
+  .product-card {
+    display: flex;
+    align-items: center;
+    max-width: 42.85rem;
+    border-top-right-radius: 0.71rem;
+    border-bottom-right-radius: 0.71rem;
+    max-height: 32.14rem;
+  }
+
+  .product-card__img--mobile {
+    display: none;
+  }
+
+  .product-card__img--desktop {
+    border-top-left-radius: 0.71rem;
+    border-bottom-left-radius: 0.71rem;
+    display: block;
+    height: 100%;
+  }
+
+  .product-card__content {
+    padding: 2.28rem;
+  }
+
+  .product-card__category {
+    margin-bottom: 1.42rem;
+  }
+
+  .product-card__title {
+    margin-bottom: 1.71rem;
+  }
+
+  .product-card__description {
+    margin-bottom: 2.07rem;
+  }
+
+  .product-card__button {
+    margin-top: 2.14rem;
+  }
+}
