@@ -11,14 +11,14 @@ import { BatchedDoc } from "../../../../../../parsing/parser/docParser/batchedDo
 import { docClone } from "../../../serialization/docCloner/docClone";
 
 function writeProductCard(batchedDoc: BatchedDoc) {
-  const baseBatch: RuleBatch = {
-    rules: docClone.sheets[2].rules.filter(
+  const baseBatch = batchedDoc.batches[batchedDoc.batches.length - 1];
+  baseBatch.rules = [
+    ...baseBatch.rules,
+    ...(docClone.sheets[2].rules.filter(
       (rule) => rule.type === STYLE_RULE_TYPE
-    ) as StyleRuleClone[],
-    width: 375,
-    isMedia: false,
-  };
-  batchedDoc.addBatch(baseBatch);
+    ) as StyleRuleClone[]),
+  ];
+
   const mediaBatch: RuleBatch = {
     rules: (
       docClone.sheets[2].rules.find(
