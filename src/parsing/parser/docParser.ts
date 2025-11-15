@@ -139,13 +139,17 @@ function wrap(
   extractBreakpointsAndBaselineWrapped: typeof extractBreakpointsAndBaseline,
   batchStyleRuleWrapped: typeof batchStyleRule,
   batchMediaRuleWrapped: typeof batchMediaRule,
-  createBatchesWrapped: typeof createBatches
+  createBatchesWrapped: typeof createBatches,
+  resolveBaselineWidthWrapped: typeof resolveBaselineWidth,
+  findBaselineMediaQueryWrapped: typeof findBaselineMediaQuery
 ) {
   parseDoc = parseDocWrapped;
   extractBreakpointsAndBaseline = extractBreakpointsAndBaselineWrapped;
   batchStyleRule = batchStyleRuleWrapped;
   batchMediaRule = batchMediaRuleWrapped;
   createBatches = createBatchesWrapped;
+  resolveBaselineWidth = resolveBaselineWidthWrapped;
+  findBaselineMediaQuery = findBaselineMediaQueryWrapped;
 }
 
 export {
@@ -154,5 +158,7 @@ export {
   batchStyleRule,
   batchMediaRule,
   createBatches,
+  resolveBaselineWidth,
+  findBaselineMediaQuery,
   wrap,
 };

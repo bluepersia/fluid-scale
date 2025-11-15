@@ -8,6 +8,8 @@ import {
   createBatches,
   parseDoc,
   wrap,
+  resolveBaselineWidth,
+  findBaselineMediaQuery,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -36,6 +38,26 @@ const extractBreakpointsAndBaselineAssertionChain: AssertionChainForFunc<
     expect(result.breakpoints).toEqual(state.master!.breakpoints);
     expect(result.globalBaselineWidth).toEqual(
       state.master!.globalBaselineWidth
+    );
+  },
+};
+
+const resolveBaselineWidthAssertionChain: AssertionChainForFunc<
+  State,
+  typeof resolveBaselineWidth
+> = {
+  "should resolve the baseline width": (state, args, result) => {
+    expect(result).toEqual(state.master!.baselineWidths[state.sheetIndex]);
+  },
+};
+
+const findBaselineMediaQueryAssertionChain: AssertionChainForFunc<
+  State,
+  typeof findBaselineMediaQuery
+> = {
+  "should find the baseline media query": (state, args, result) => {
+    expect(result).toEqual(
+      state.master!.baselineMediaQueries[state.sheetIndex]
     );
   },
 };
@@ -87,6 +109,7 @@ const defaultAssertions = {
   batchStyleRule: batchStyleRuleAssertionChain,
   batchMediaRule: batchMediaRuleAssertionChain,
   createBatches: createBatchesAssertionChain,
+  resolveBaselineWidth: resolveBaselineWidthAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -97,6 +120,7 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
     return {
       styleRuleIndex: 0,
       mediaRuleIndex: 0,
+      sheetIndex: 0,
     };
   }
 
@@ -105,6 +129,14 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
   extractBreakpointsAndBaseline = this.wrapFn(
     extractBreakpointsAndBaseline,
     "extractBreakpointsAndBaseline"
+  );
+
+  resolveBaselineWidth = this.wrapFn(
+    resolveBaselineWidth,
+    "resolveBaselineWidth",
+    {
+      post: (state) => state.sheetIndex++,
+    }
   );
 
   batchStyleRule = this.wrapFn(batchStyleRule, "batchStyleRule", {
@@ -132,7 +164,8 @@ function wrapAll() {
     assertionMaster.extractBreakpointsAndBaseline,
     assertionMaster.batchStyleRule,
     assertionMaster.batchMediaRule,
-    assertionMaster.createBatches
+    assertionMaster.createBatches,
+    assertionMaster.resolveBaselineWidth
   );
 }
 

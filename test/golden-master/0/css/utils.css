@@ -1,5 +1,6 @@
 #accessible {
   --empty: "";
+  --id: 1;
 }
 
 .u-container {
