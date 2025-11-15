@@ -5,12 +5,15 @@ import { BatchedDoc } from "./batchedDoc";
 
 type State = {
   master?: DocParserMaster;
+  styleRuleIndex: number;
+  mediaRuleIndex: number;
 };
 
 type DocParserMaster = Master & {
   inputDocClone: DocClone;
   batchedDoc: BatchedDoc;
   breakpoints: number[];
+  globalBaselineWidth: number;
 };
 
 export type { State, DocParserMaster as Master };

@@ -6,6 +6,7 @@ const master: Master = {
   inputDocClone: docClone,
   batchedDoc: batchedDoc,
   breakpoints: [375, 600],
+  globalBaselineWidth: 375,
   index: 0,
   step: 0,
 };

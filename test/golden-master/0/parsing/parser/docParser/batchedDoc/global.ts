@@ -25,7 +25,7 @@ function writeGlobal(batchedDoc: BatchedDoc) {
         (rule) => rule.type === MEDIA_RULE_TYPE
       ) as MediaRuleClone
     ).rules as StyleRuleClone[],
-    width: 600,
+    width: 375,
     isMedia: true,
   };
   batchedDoc.addBatch(mediaBatch);
