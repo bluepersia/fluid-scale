@@ -95,7 +95,10 @@ let batchStyleRule = (
   baselineWidth: number
 ) => {
   const newBatchState = { ...batchState };
-  if (newBatchState.currentBatch === null) {
+  if (
+    newBatchState.currentBatch === null ||
+    newBatchState.currentBatch.width !== baselineWidth
+  ) {
     newBatchState.currentBatch = {
       rules: [],
       width: baselineWidth,
