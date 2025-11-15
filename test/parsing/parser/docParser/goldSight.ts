@@ -57,7 +57,7 @@ const findBaselineMediaQueryAssertionChain: AssertionChainForFunc<
 > = {
   "should find the baseline media query": (state, args, result) => {
     expect(result).toEqual(
-      state.master!.baselineMediaQueries[state.sheetIndex]
+      state.master!.baselineMediaQueries[state.sheetIndex - 1]
     );
   },
 };
@@ -110,6 +110,7 @@ const defaultAssertions = {
   batchMediaRule: batchMediaRuleAssertionChain,
   createBatches: createBatchesAssertionChain,
   resolveBaselineWidth: resolveBaselineWidthAssertionChain,
+  findBaselineMediaQuery: findBaselineMediaQueryAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -135,7 +136,24 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
     resolveBaselineWidth,
     "resolveBaselineWidth",
     {
+      getAddress: (state, args, result) => {
+        return {
+          sheetIndex: state.sheetIndex,
+        };
+      },
       post: (state) => state.sheetIndex++,
+    }
+  );
+
+  findBaselineMediaQuery = this.wrapFn(
+    findBaselineMediaQuery,
+    "findBaselineMediaQuery",
+    {
+      getAddress: (state, args, result) => {
+        return {
+          sheetIndex: state.sheetIndex - 1,
+        };
+      },
     }
   );
 
@@ -150,6 +168,12 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
   });
 
   batchMediaRule = this.wrapFn(batchMediaRule, "batchMediaRule", {
+    getAddress: (state, args) => {
+      return {
+        mediaRuleIndex: state.mediaRuleIndex,
+        width: args[0].minWidth,
+      };
+    },
     post: (state) => state.mediaRuleIndex++,
   });
 
@@ -165,7 +189,8 @@ function wrapAll() {
     assertionMaster.batchStyleRule,
     assertionMaster.batchMediaRule,
     assertionMaster.createBatches,
-    assertionMaster.resolveBaselineWidth
+    assertionMaster.resolveBaselineWidth,
+    assertionMaster.findBaselineMediaQuery
   );
 }
 
