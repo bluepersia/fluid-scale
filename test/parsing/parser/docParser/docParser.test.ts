@@ -5,7 +5,9 @@ import { parseDoc } from "../../../../src/parsing/parser/docParser";
 describe("docParser", () => {
   test.each(collection)("should parse the document", (master) => {
     assertionMaster.master = master;
-    const result = parseDoc(master.inputDocClone);
-    expect(result).toEqual({ breakpoints: master.breakpoints });
+
+    parseDoc(master.inputDocClone);
+
+    assertionMaster.assertQueue();
   });
 });

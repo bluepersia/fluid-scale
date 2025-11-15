@@ -4,9 +4,9 @@ import type {
   MediaRuleClone,
   StyleRuleClone,
 } from "../serialization/docClone";
-import type { BatchState } from "./index.types";
+import type { BatchState, DocParserResults } from "./index.types";
 
-let parseDoc = (doc: DocClone) => {
+let parseDoc = (doc: DocClone): DocParserResults => {
   const uniqueBreakpoints: Set<number> = new Set();
   let globalBaselineWidth = 375;
 
@@ -66,6 +66,7 @@ let parseDoc = (doc: DocClone) => {
 
   return {
     breakpoints: Array.from(uniqueBreakpoints),
+    batches: batchState.batches,
   };
 };
 

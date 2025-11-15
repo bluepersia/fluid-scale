@@ -11,6 +11,7 @@ if (process.env.NODE_ENV === "test") {
 const parseDocAssertionChain: AssertionChainForFunc<State, typeof parseDoc> = {
   "should parse the document": (state, args, result) => {
     expect(result.breakpoints).toEqual(state.master!.breakpoints);
+    expect(result.batches).toEqual(state.master!.batchedDoc.batches);
   },
 };
 

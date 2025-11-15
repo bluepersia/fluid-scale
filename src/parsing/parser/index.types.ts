@@ -2,6 +2,7 @@ import type { StyleRuleClone } from "../serialization/docClone";
 
 type DocParserResults = {
   breakpoints: number[];
+  batches: RuleBatch[];
 };
 
 type RuleBatch = {
