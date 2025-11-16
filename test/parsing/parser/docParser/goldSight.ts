@@ -13,6 +13,7 @@ import {
   wrap,
   resolveBaselineWidth,
   findBaselineMediaQuery,
+  processBatches,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -127,6 +128,15 @@ const createBatchesAssertionChain: AssertionChainForFunc<
   },
 };
 
+const processBatchesAssertionChain: AssertionChainForFunc<
+  State,
+  typeof processBatches
+> = {
+  "should process the batches": (state, args, result) => {
+    expect(result).toEqual(state.master!.fluidData);
+  },
+};
+
 const defaultAssertions = {
   parseDoc: parseDocAssertionChain,
   extractBreakpointsAndBaseline: extractBreakpointsAndBaselineAssertionChain,
@@ -135,6 +145,7 @@ const defaultAssertions = {
   createBatches: createBatchesAssertionChain,
   resolveBaselineWidth: resolveBaselineWidthAssertionChain,
   findBaselineMediaQuery: findBaselineMediaQueryAssertionChain,
+  processBatches: processBatchesAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -207,6 +218,8 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
   });
 
   createBatches = this.wrapFn(createBatches, "createBatches");
+
+  processBatches = this.wrapFn(processBatches, "processBatches");
 }
 
 const assertionMaster = new DocParserAssertionMaster();
@@ -219,7 +232,8 @@ function wrapAll() {
     assertionMaster.batchMediaRule,
     assertionMaster.createBatches,
     assertionMaster.resolveBaselineWidth,
-    assertionMaster.findBaselineMediaQuery
+    assertionMaster.findBaselineMediaQuery,
+    assertionMaster.processBatches
   );
 }
 

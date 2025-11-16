@@ -26,65 +26,7 @@ let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
   const batches = createBatches(doc, globalBaselineWidth, ctx);
 
   //NEW BEGIN
-  const fluidData = new FluidData(ctx);
-  for (const [batchIndex, batch] of batches.entries()) {
-    const { rules, width } = batch;
-    for (const rule of rules) {
-      for (const selector of splitSelector(rule.selector)) {
-        for (const property in rule.style) {
-          const minValue = rule.style[property];
-
-          let mediaSeen = false;
-          const { seekAlg } = ctx;
-          let didMatch = false;
-          seekMaxLoop: for (const nextBatch of batches.slice(batchIndex + 1)) {
-            if (!nextBatch.isMedia) {
-              if (
-                seekAlg === "stopAt1stNonMedia" ||
-                (seekAlg === "stopAfterMedia" && mediaSeen)
-              ) {
-                break seekMaxLoop;
-              }
-            } else {
-              mediaSeen = true;
-            }
-            for (const nextRule of nextBatch.rules) {
-              if (!splitSelector(nextRule.selector).includes(selector)) {
-                continue;
-              }
-              const nextValue = nextRule.style[property];
-              if (nextValue) {
-                didMatch = true;
-                const anchor = extractAnchor(selector);
-                const anchorData = fluidData.addAnchor(anchor);
-                const selectorData = anchorData.addSelector(selector);
-                const propertyData = selectorData.addRangedProperty(property);
-                propertyData.ranges.push({
-                  minBp: width,
-                  maxBp: nextBatch.width,
-                  minValue: parseFluidValue2D(minValue),
-                  maxValue: parseFluidValue2D(nextValue),
-                });
-                propertyData.metaData.orderID = rule.orderID;
-              }
-            }
-          }
-          const { autoForce } = ctx;
-          if (!didMatch && autoForce) {
-            const anchor = extractAnchor(selector);
-            const anchorData = fluidData.addAnchor(anchor);
-            const selectorData = anchorData.addSelector(selector);
-            if (selectorData.properties[property]) {
-              continue;
-            }
-            const propertyData = selectorData.addAutoForcedProperty(property);
-            propertyData.value = minValue;
-            propertyData.metaData.orderID = rule.orderID;
-          }
-        }
-      }
-    }
-  }
+  const fluidData = processBatches(batches, ctx);
   //NEW END
 
   return {
@@ -224,6 +166,72 @@ let batchMediaRule = (
   return newBatchState;
 };
 
+let processBatches = (
+  batches: RuleBatch[],
+  ctx: ParseDocContext
+): FluidData => {
+  const fluidData = new FluidData(ctx);
+  for (const [batchIndex, batch] of batches.entries()) {
+    const { rules, width } = batch;
+    for (const rule of rules) {
+      for (const selector of splitSelector(rule.selector)) {
+        for (const property in rule.style) {
+          const minValue = rule.style[property];
+
+          let mediaSeen = false;
+          const { seekAlg } = ctx;
+          let didMatch = false;
+          seekMaxLoop: for (const nextBatch of batches.slice(batchIndex + 1)) {
+            if (!nextBatch.isMedia) {
+              if (
+                seekAlg === "stopAt1stNonMedia" ||
+                (seekAlg === "stopAfterMedia" && mediaSeen)
+              ) {
+                break seekMaxLoop;
+              }
+            } else {
+              mediaSeen = true;
+            }
+            for (const nextRule of nextBatch.rules) {
+              if (!splitSelector(nextRule.selector).includes(selector)) {
+                continue;
+              }
+              const nextValue = nextRule.style[property];
+              if (nextValue) {
+                didMatch = true;
+                const anchor = extractAnchor(selector);
+                const anchorData = fluidData.addAnchor(anchor);
+                const selectorData = anchorData.addSelector(selector);
+                const propertyData = selectorData.addRangedProperty(property);
+                propertyData.ranges.push({
+                  minBp: width,
+                  maxBp: nextBatch.width,
+                  minValue: parseFluidValue2D(minValue),
+                  maxValue: parseFluidValue2D(nextValue),
+                });
+                propertyData.metaData.orderID = rule.orderID;
+              }
+            }
+          }
+          const { autoForce } = ctx;
+          if (!didMatch && autoForce) {
+            const anchor = extractAnchor(selector);
+            const anchorData = fluidData.addAnchor(anchor);
+            const selectorData = anchorData.addSelector(selector);
+            if (selectorData.properties[property]) {
+              continue;
+            }
+            const propertyData = selectorData.addAutoForcedProperty(property);
+            propertyData.value = minValue;
+            propertyData.metaData.orderID = rule.orderID;
+          }
+        }
+      }
+    }
+  }
+  return fluidData;
+};
+
 function splitSelector(selector: string) {
   return selector.split(",").map((s) => s.trim());
 }
@@ -279,7 +287,8 @@ function wrap(
   batchMediaRuleWrapped: typeof batchMediaRule,
   createBatchesWrapped: typeof createBatches,
   resolveBaselineWidthWrapped: typeof resolveBaselineWidth,
-  findBaselineMediaQueryWrapped: typeof findBaselineMediaQuery
+  findBaselineMediaQueryWrapped: typeof findBaselineMediaQuery,
+  processBatchesWrapped: typeof processBatches
 ) {
   parseDoc = parseDocWrapped;
   extractBreakpointsAndBaseline = extractBreakpointsAndBaselineWrapped;
@@ -288,6 +297,7 @@ function wrap(
   createBatches = createBatchesWrapped;
   resolveBaselineWidth = resolveBaselineWidthWrapped;
   findBaselineMediaQuery = findBaselineMediaQueryWrapped;
+  processBatches = processBatchesWrapped;
 }
 
 export {
@@ -298,5 +308,6 @@ export {
   createBatches,
   resolveBaselineWidth,
   findBaselineMediaQuery,
+  processBatches,
   wrap,
 };
