@@ -11,6 +11,9 @@ type ProcessSelectorInRuleContext = ParseDocContext & {
   width: number;
   fluidData: FluidData;
 };
+type ProcessPropertyContext = ProcessSelectorInRuleContext & {
+  selector: string;
+};
 type DocParserResults = {
   breakpoints: number[];
   fluidData: FluidData;
@@ -32,4 +35,5 @@ export type {
   BatchState,
   ParseDocContext,
   ProcessSelectorInRuleContext,
+  ProcessPropertyContext,
 };
