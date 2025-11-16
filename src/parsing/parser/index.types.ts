@@ -18,6 +18,12 @@ type ProcessPropertyContext = ProcessSelectorInRuleContext & {
 type SeekAndInsertFluidRangeContext = ProcessPropertyContext & {
   rule: StyleRuleClone;
 };
+type InsertFluidRangeContext = SeekAndInsertFluidRangeContext & {
+  property: string;
+  nextValue: string;
+  nextBatch: RuleBatch;
+  minValue: string;
+};
 type DocParserResults = {
   breakpoints: number[];
   fluidData: FluidData;
@@ -41,4 +47,5 @@ export type {
   ProcessSelectorInRuleContext,
   ProcessPropertyContext,
   SeekAndInsertFluidRangeContext,
+  InsertFluidRangeContext,
 };

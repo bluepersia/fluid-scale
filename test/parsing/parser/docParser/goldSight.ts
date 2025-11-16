@@ -20,6 +20,7 @@ import {
   processSelectorInRule,
   processProperty,
   seekAndInsertFluidRange,
+  insertFluidRange,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -270,6 +271,24 @@ const seekAndInsertFluidRangeAssertionChain: AssertionChainForFunc<
     ),
 };
 
+const insertFluidRangeAssertionChain: AssertionChainForFunc<
+  State,
+  typeof insertFluidRange
+> = {
+  "should insert the fluid range": (state, args, result) =>
+    withEventNames(args, ["insertFluidData"], (events) => {
+      expect(Object.keys(events).length).toBe(1);
+      if (events.insertFluidData) {
+        assertFluidDataInsertion(
+          events.insertFluidData,
+          result,
+          state.master!.fluidData
+        );
+      } else {
+        throw new Error("Unexpected event");
+      }
+    }),
+};
 const defaultAssertions = {
   parseDoc: parseDocAssertionChain,
   extractBreakpointsAndBaseline: extractBreakpointsAndBaselineAssertionChain,
@@ -282,6 +301,7 @@ const defaultAssertions = {
   processSelectorInRule: processSelectorInRuleAssertionChain,
   processProperty: processPropertyAssertionChain,
   seekAndInsertFluidRange: seekAndInsertFluidRangeAssertionChain,
+  insertFluidRange: insertFluidRangeAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -376,6 +396,8 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
     seekAndInsertFluidRange,
     "seekAndInsertFluidRange"
   );
+
+  insertFluidRange = this.wrapFn(insertFluidRange, "insertFluidRange");
 }
 
 const assertionMaster = new DocParserAssertionMaster();
@@ -392,7 +414,8 @@ function wrapAll() {
     assertionMaster.processBatches,
     assertionMaster.processSelectorInRule,
     assertionMaster.processProperty,
-    assertionMaster.seekAndInsertFluidRange
+    assertionMaster.seekAndInsertFluidRange,
+    assertionMaster.insertFluidRange
   );
 }
 
