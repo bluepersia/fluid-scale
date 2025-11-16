@@ -18,8 +18,8 @@ type FluidPropMetaData = {
 type FluidRange = {
   minBp: number;
   maxBp: number;
-  minValue: FluidValue;
-  maxValue: FluidValue;
+  minValue: FluidValue[][];
+  maxValue: FluidValue[][];
 };
 
 type FluidValue = {

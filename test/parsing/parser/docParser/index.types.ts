@@ -1,3 +1,4 @@
+import { FluidData } from "../../../../src/fluidData";
 import { RuleBatch } from "../../../../src/parsing/parser/index.types";
 import type {
   DocClone,
@@ -20,6 +21,7 @@ type DocParserMaster = Master & {
   globalBaselineWidth: number;
   baselineWidths: number[];
   baselineMediaQueries: (MediaRuleClone | undefined)[];
+  fluidData: FluidData;
 };
 
 export type { State, DocParserMaster as Master };

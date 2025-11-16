@@ -62,8 +62,8 @@ let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
                 propertyData.ranges.push({
                   minBp: width,
                   maxBp: nextBatch.width,
-                  minValue: parseFluidValue(minValue),
-                  maxValue: parseFluidValue(nextValue),
+                  minValue: parseFluidValue2D(minValue),
+                  maxValue: parseFluidValue2D(nextValue),
                 });
               }
             }
@@ -73,6 +73,9 @@ let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
             const anchor = extractAnchor(selector);
             const anchorData = fluidData.addAnchor(anchor);
             const selectorData = anchorData.addSelector(selector);
+            if (selectorData.properties[property]) {
+              continue;
+            }
             const propertyData = selectorData.addAutoForcedProperty(property);
             propertyData.value = minValue;
           }
@@ -228,7 +231,7 @@ function extractAnchor(selector: string) {
   return selectorParts[selectorParts.length - 1];
 }
 
-function parseFluidValue2D(value: string): FluidValue[][] | string {
+function parseFluidValue2D(value: string): FluidValue[][] {
   let depth = 0;
   let currentValue = "";
   let values: FluidValue[][] = [];

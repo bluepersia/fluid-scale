@@ -48,14 +48,22 @@ class FluidData {
     propertyData.ranges.push({
       minBp,
       maxBp,
-      minValue: {
-        type: "single",
-        ...minValue,
-      },
-      maxValue: {
-        type: "single",
-        ...maxValue,
-      },
+      minValue: [
+        [
+          {
+            type: "single",
+            ...minValue,
+          },
+        ],
+      ],
+      maxValue: [
+        [
+          {
+            type: "single",
+            ...maxValue,
+          },
+        ],
+      ],
     });
     return propertyData;
   }
@@ -115,7 +123,7 @@ class SelectorData {
         return result;
       }
       throw new Error(
-        "Property already exists but is not an auto forced property"
+        `Property ${key} already exists but is not an auto forced property`
       );
     }
     const result = (this.properties[key] = new AutoForcedPropertyData(

@@ -3,6 +3,7 @@ import { MediaRuleClone } from "../../../../../../src/parsing/serialization/docC
 import { Master } from "../../../../../parsing/parser/docParser/index.types";
 import { docClone } from "../../serialization/docCloner/docClone";
 import { batchedDoc } from "./batchedDoc/batchedDoc";
+import { fluidData } from "./fluidData/fluidData";
 
 const master: Master = {
   inputDocClone: docClone,
@@ -17,6 +18,7 @@ const master: Master = {
     undefined,
     undefined,
   ],
+  fluidData,
   index: 0,
   step: 0,
 };
