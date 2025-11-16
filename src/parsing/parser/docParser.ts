@@ -272,14 +272,10 @@ let seekAndInsertFluidRange = (
   let { fluidData } = ctx;
   let mediaSeen = false;
   seekMaxLoop: for (const nextBatch of batches.slice(batchIndex + 1)) {
-    if (!nextBatch.isMedia) {
-      if (
-        seekAlg === "stopAt1stNonMedia" ||
-        (seekAlg === "stopAfterMedia" && mediaSeen)
-      ) {
-        break seekMaxLoop;
-      }
-    } else {
+    if (shouldStopSeeking(nextBatch, mediaSeen, seekAlg)) {
+      break seekMaxLoop;
+    }
+    if (nextBatch.isMedia) {
       mediaSeen = true;
     }
     for (const nextRule of nextBatch.rules) {
@@ -322,6 +318,22 @@ let seekAndInsertFluidRange = (
   });
   return { didMatch: false, newFluidData: fluidData };
 };
+
+function shouldStopSeeking(
+  nextBatch: RuleBatch,
+  mediaSeen: boolean,
+  seekAlg: string
+): boolean {
+  if (!nextBatch.isMedia) {
+    if (
+      seekAlg === "stopAt1stNonMedia" ||
+      (seekAlg === "stopAfterMedia" && mediaSeen)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 function cloneFluidDataAt(
   fluidData: FluidData,
@@ -434,5 +446,6 @@ export {
   processSelectorInRule,
   processProperty,
   seekAndInsertFluidRange,
+  shouldStopSeeking,
   wrap,
 };
