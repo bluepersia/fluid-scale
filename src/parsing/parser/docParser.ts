@@ -18,6 +18,10 @@ let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
 
   const batches = createBatches(doc, globalBaselineWidth, ctx);
 
+  //NEW BEGIN
+
+  //NEW END
+
   return {
     breakpoints,
     batches,
