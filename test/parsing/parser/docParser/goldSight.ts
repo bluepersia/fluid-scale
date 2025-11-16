@@ -19,6 +19,7 @@ import {
   processBatches,
   processSelectorInRule,
   processProperty,
+  seekAndInsertFluidRange,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -37,19 +38,25 @@ if (process.env.NODE_ENV === "test") {
 const parseDocAssertionChain: AssertionChainForFunc<State, typeof parseDoc> = {
   "should parse the document": (state, args, result) => {
     expect(result.breakpoints).toEqual(state.master!.breakpoints);
-    stripOrderID(result.fluidData);
+    result.fluidData = stripOrderID(result.fluidData);
     expect(result.fluidData).toEqual(state.master!.fluidData);
   },
 };
 
-function stripOrderID(fluidData: FluidData) {
-  for (const anchor of Object.values(fluidData.anchors)) {
+function stripOrderID(fluidData: FluidData): FluidData {
+  const clone = Object.assign(
+    Object.create(Object.getPrototypeOf(fluidData)),
+    fluidData
+  ) as FluidData;
+
+  for (const anchor of Object.values(clone.anchors)) {
     for (const selector of Object.values(anchor.selectors)) {
       for (const property of Object.values(selector.properties)) {
         property.metaData.orderID = -1;
       }
     }
   }
+  return clone;
 }
 
 const extractBreakpointsAndBaselineAssertionChain: AssertionChainForFunc<
@@ -198,7 +205,7 @@ const processPropertyAssertionChain: AssertionChainForFunc<
   "should process the property": (state, args, result) =>
     withEventNames(
       args,
-      ["insertFluidData", "omitForcedProperty"],
+      ["insertFluidData", "omitFluidDataInsertion"],
       (events) => {
         expect(Object.keys(events).length).toBe(1);
         if (events.insertFluidData) {
@@ -207,10 +214,62 @@ const processPropertyAssertionChain: AssertionChainForFunc<
             result,
             state.master!.fluidData
           );
+        } else if (events.omitFluidDataInsertion) {
+          expect(result).toBe(args[2].fluidData);
+        } else {
+          throw new Error("Unexpected event");
         }
       }
     ),
 };
+
+const seekAndInsertFluidRangeAssertionChain: AssertionChainForFunc<
+  State,
+  typeof seekAndInsertFluidRange
+> = {
+  "should seek and insert the fluid range": (state, args, result) =>
+    withEventNames(
+      args,
+      ["insertFluidData", "omitFluidDataInsertion"],
+      (events, eventBus) => {
+        if (Object.keys(events).length <= 0) {
+          const [property] = args;
+          const { selector, rule, width } = args[2];
+          const allEvents = [
+            ...filterEventsByPayload(eventBus, "insertFluidData", {
+              selector,
+              rule,
+              property,
+            }),
+            ...filterEventsByPayload(eventBus, "omitFluidDataInsertion", {
+              selector,
+              rule,
+              property,
+            }),
+          ];
+          expect(allEvents.length).toBe(1);
+        } else {
+          expect(Object.keys(events).length).toBe(1);
+
+          if (events.insertFluidData) {
+            assertFluidDataInsertion(
+              events.insertFluidData,
+              result.newFluidData,
+              state.master!.fluidData
+            );
+            expect(result.didMatch).toBe(true);
+          } else if (events.omitFluidDataInsertion) {
+            expect(result).toBe(args[2].fluidData);
+            expect(result.didMatch).toBe(false);
+          } else {
+            console.error("EVENTS", Object.keys(events));
+            throw new Error("Unexpected event");
+          }
+        }
+      }
+    ),
+};
+
 const defaultAssertions = {
   parseDoc: parseDocAssertionChain,
   extractBreakpointsAndBaseline: extractBreakpointsAndBaselineAssertionChain,
@@ -222,6 +281,7 @@ const defaultAssertions = {
   processBatches: processBatchesAssertionChain,
   processSelectorInRule: processSelectorInRuleAssertionChain,
   processProperty: processPropertyAssertionChain,
+  seekAndInsertFluidRange: seekAndInsertFluidRangeAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -311,6 +371,11 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
       };
     },
   });
+
+  seekAndInsertFluidRange = this.wrapFn(
+    seekAndInsertFluidRange,
+    "seekAndInsertFluidRange"
+  );
 }
 
 const assertionMaster = new DocParserAssertionMaster();
@@ -326,7 +391,8 @@ function wrapAll() {
     assertionMaster.findBaselineMediaQuery,
     assertionMaster.processBatches,
     assertionMaster.processSelectorInRule,
-    assertionMaster.processProperty
+    assertionMaster.processProperty,
+    assertionMaster.seekAndInsertFluidRange
   );
 }
 

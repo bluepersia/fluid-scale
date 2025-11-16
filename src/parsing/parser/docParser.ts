@@ -19,6 +19,7 @@ import type {
   ProcessPropertyContext,
   ProcessSelectorInRuleContext,
   RuleBatch,
+  SeekAndInsertFluidRangeContext,
 } from "./index.types";
 
 let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
@@ -211,13 +212,65 @@ let processProperty = (
   rule: StyleRuleClone,
   ctx: ProcessPropertyContext
 ): FluidData => {
-  const { selector, batches, batchIndex, width, event } = ctx;
+  const { selector, event } = ctx;
   let { fluidData } = ctx;
   const minValue = rule.style[property];
 
+  const { didMatch, newFluidData } = seekAndInsertFluidRange(
+    property,
+    minValue,
+    { ...ctx, rule }
+  );
+  fluidData = newFluidData;
+  const { autoForce } = ctx;
+  if (!didMatch && autoForce) {
+    const anchor = extractAnchor(selector);
+    if (fluidData.anchors[anchor]?.selectors[selector]?.properties[property]) {
+      event?.emitOne(
+        "omitFluidDataInsertion",
+        ctx,
+        {
+          selector,
+          property,
+          rule,
+        },
+        { why: "propertyAlreadyExists" }
+      );
+      return fluidData;
+    }
+    fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
+    const anchorData = fluidData.addAnchor(anchor);
+    const selectorData = anchorData.addSelector(selector);
+
+    const propertyData = selectorData.addAutoForcedProperty(property);
+    propertyData.value = minValue;
+    propertyData.metaData.orderID = rule.orderID;
+    event?.emitOne(
+      "insertFluidData",
+      ctx,
+      {
+        selector,
+        property,
+        rule,
+      },
+      {
+        type: "forced",
+        anchor,
+        propertyData,
+      }
+    );
+  }
+  return fluidData;
+};
+
+let seekAndInsertFluidRange = (
+  property: string,
+  minValue: string,
+  ctx: SeekAndInsertFluidRangeContext
+): { didMatch: boolean; newFluidData: FluidData } => {
+  const { selector, batches, batchIndex, width, rule, seekAlg, event } = ctx;
+  let { fluidData } = ctx;
   let mediaSeen = false;
-  const { seekAlg } = ctx;
-  let didMatch = false;
   seekMaxLoop: for (const nextBatch of batches.slice(batchIndex + 1)) {
     if (!nextBatch.isMedia) {
       if (
@@ -235,7 +288,6 @@ let processProperty = (
       }
       const nextValue = nextRule.style[property];
       if (nextValue) {
-        didMatch = true;
         const anchor = extractAnchor(selector);
         fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
         const anchorData = fluidData.addAnchor(anchor);
@@ -256,38 +308,19 @@ let processProperty = (
           property,
           rangeIndex: propertyData.ranges.length - 1,
           propertyData,
+          width,
         });
-        return fluidData;
+        return { didMatch: true, newFluidData: fluidData };
       }
     }
   }
-  const { autoForce } = ctx;
-  if (!didMatch && autoForce) {
-    const anchor = extractAnchor(selector);
-    fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
-    const anchorData = fluidData.addAnchor(anchor);
-    const selectorData = anchorData.addSelector(selector);
-    if (selectorData.properties[property]) {
-      event?.emit("omitForcedProperty", ctx, {
-        selector,
-        property,
-        why: "propertyAlreadyExists",
-      });
-      return fluidData;
-    }
-    const propertyData = selectorData.addAutoForcedProperty(property);
-    propertyData.value = minValue;
-    propertyData.metaData.orderID = rule.orderID;
-    event?.emit("insertFluidData", ctx, {
-      type: "forced",
-      rule,
-      anchor,
-      selector,
-      property,
-      propertyData,
-    });
-  }
-  return fluidData;
+  event?.emit("omitFluidDataInsertion", ctx, {
+    selector,
+    property,
+    rule,
+    why: "noMatch",
+  });
+  return { didMatch: false, newFluidData: fluidData };
 };
 
 function cloneFluidDataAt(
@@ -373,7 +406,8 @@ function wrap(
   findBaselineMediaQueryWrapped: typeof findBaselineMediaQuery,
   processBatchesWrapped: typeof processBatches,
   processSelectorInRuleWrapped: typeof processSelectorInRule,
-  processPropertyWrapped: typeof processProperty
+  processPropertyWrapped: typeof processProperty,
+  seekAndInsertFluidRangeWrapped: typeof seekAndInsertFluidRange
 ) {
   parseDoc = parseDocWrapped;
   extractBreakpointsAndBaseline = extractBreakpointsAndBaselineWrapped;
@@ -385,6 +419,7 @@ function wrap(
   processBatches = processBatchesWrapped;
   processSelectorInRule = processSelectorInRuleWrapped;
   processProperty = processPropertyWrapped;
+  seekAndInsertFluidRange = seekAndInsertFluidRangeWrapped;
 }
 
 export {
@@ -398,5 +433,6 @@ export {
   processBatches,
   processSelectorInRule,
   processProperty,
+  seekAndInsertFluidRange,
   wrap,
 };
