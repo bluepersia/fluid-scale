@@ -1,4 +1,8 @@
+import type { EventContext } from "gold-sight";
+import type { Global } from "../../index.types";
 import type { StyleRuleClone } from "../serialization/docClone";
+
+type ParseDocContext = Global & EventContext & {};
 
 type DocParserResults = {
   breakpoints: number[];
@@ -15,4 +19,4 @@ type BatchState = {
   currentBatch: RuleBatch | null;
   batches: RuleBatch[];
 };
-export type { DocParserResults, RuleBatch, BatchState };
+export type { DocParserResults, RuleBatch, BatchState, ParseDocContext };

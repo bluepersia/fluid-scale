@@ -5,13 +5,18 @@ import type {
   SheetClone,
   StyleRuleClone,
 } from "../serialization/docClone";
-import type { BatchState, DocParserResults, RuleBatch } from "./index.types";
+import type {
+  BatchState,
+  DocParserResults,
+  ParseDocContext,
+  RuleBatch,
+} from "./index.types";
 
-let parseDoc = (doc: DocClone): DocParserResults => {
+let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
   const { breakpoints, globalBaselineWidth } =
     extractBreakpointsAndBaseline(doc);
 
-  const batches = createBatches(doc, globalBaselineWidth);
+  const batches = createBatches(doc, globalBaselineWidth, ctx);
 
   return {
     breakpoints,
@@ -62,7 +67,8 @@ let findBaselineMediaQuery = (
 
 let createBatches = (
   doc: DocClone,
-  globalBaselineWidth: number
+  globalBaselineWidth: number,
+  ctx: ParseDocContext
 ): RuleBatch[] => {
   let batchState: BatchState = {
     currentBatch: null,
@@ -81,7 +87,7 @@ let createBatches = (
         );
       }
       if (rule.type === MEDIA_RULE_TYPE) {
-        batchState = batchMediaRule(rule as MediaRuleClone, batchState);
+        batchState = batchMediaRule(rule as MediaRuleClone, batchState, ctx);
       }
     }
   }
@@ -121,7 +127,18 @@ let batchStyleRule = (
   return newBatchState;
 };
 
-let batchMediaRule = (mediaRule: MediaRuleClone, batchState: BatchState) => {
+let batchMediaRule = (
+  mediaRule: MediaRuleClone,
+  batchState: BatchState,
+  ctx: ParseDocContext
+) => {
+  const { event } = ctx;
+  if (mediaRule.rules.length <= 0) {
+    if (dev) {
+      event?.emit("omitMediaRule", ctx, { why: "noRules" });
+    }
+    return batchState;
+  }
   const newBatchState = { ...batchState };
   newBatchState.currentBatch = null;
   newBatchState.batches = [
@@ -132,6 +149,9 @@ let batchMediaRule = (mediaRule: MediaRuleClone, batchState: BatchState) => {
       isMedia: true,
     },
   ];
+  if (dev) {
+    event?.emit("batchMediaRule", ctx, { mediaRule });
+  }
   return newBatchState;
 };
 function wrap(

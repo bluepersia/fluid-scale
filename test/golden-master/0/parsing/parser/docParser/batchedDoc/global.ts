@@ -19,16 +19,6 @@ function writeGlobal(batchedDoc: BatchedDoc) {
     isMedia: false,
   };
   batchedDoc.addBatch(baseBatch);
-  const mediaBatch: RuleBatch = {
-    rules: (
-      docClone.sheets[0].rules.find(
-        (rule) => rule.type === MEDIA_RULE_TYPE
-      ) as MediaRuleClone
-    ).rules as StyleRuleClone[],
-    width: 375,
-    isMedia: true,
-  };
-  batchedDoc.addBatch(mediaBatch);
 }
 
 export { writeGlobal };

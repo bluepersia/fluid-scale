@@ -1,4 +1,7 @@
-import AssertionMaster, { AssertionChainForFunc } from "gold-sight";
+import AssertionMaster, {
+  AssertionChainForFunc,
+  withEventNames,
+} from "gold-sight";
 import type { ExpectStatic } from "vitest";
 import type { Master, State } from "./index.types";
 import {
@@ -81,17 +84,25 @@ const batchMediaRuleAssertionChain: AssertionChainForFunc<
   State,
   typeof batchMediaRule
 > = {
-  "should batch the media rule": (state, args, result) => {
-    const masterBatch = findMediaBatchInDoc(
-      state.master!.batchedDoc,
-      state.mediaRuleIndex
-    );
-    const resultBatch = findMediaBatchInBatchState(
-      result,
-      state.mediaRuleIndex
-    );
-    expect(resultBatch).toEqual(masterBatch);
-  },
+  "should batch the media rule": (state, args, result) =>
+    withEventNames(args, ["batchMediaRule", "omitMediaRule"], (events) => {
+      expect(Object.keys(events).length).toBe(1);
+      if (events.batchMediaRule) {
+        const masterBatch = findMediaBatchInDoc(
+          state.master!.batchedDoc,
+          state.mediaRuleIndex
+        );
+        const resultBatch = findMediaBatchInBatchState(
+          result,
+          state.mediaRuleIndex
+        );
+        expect(resultBatch).toEqual(masterBatch);
+      } else if (events.omitMediaRule) {
+        expect(result).toBe(args[1]);
+      } else {
+        throw new Error("Unexpected event");
+      }
+    }),
 };
 
 const createBatchesAssertionChain: AssertionChainForFunc<
