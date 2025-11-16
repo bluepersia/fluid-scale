@@ -2,12 +2,14 @@ import { describe, test, expect } from "vitest";
 import { collection } from "./collection";
 import { assertionMaster } from "./goldSight";
 import {
+  cloneFluidDataAt,
   parseDoc,
   shouldStopSeeking,
 } from "../../../../src/parsing/parser/docParser";
 import { makeDefaultGlobal } from "../../../../src/utils/global";
 import { makeEventContext } from "gold-sight";
 import { RuleBatch } from "../../../../src/parsing/parser/index.types";
+import { FluidData } from "../../../../src/fluidData";
 describe("docParser", () => {
   test.each(collection)("should parse the document", (master) => {
     assertionMaster.master = master;

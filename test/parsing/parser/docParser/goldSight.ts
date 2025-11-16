@@ -22,6 +22,7 @@ import {
   seekAndInsertFluidRange,
   insertFluidRange,
   handleAutoForcedProperty,
+  cloneFluidDataAt,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -315,6 +316,31 @@ const handleAutoForcedPropertyAssertionChain: AssertionChainForFunc<
       }
     ),
 };
+
+const cloneFluidDataAtAssertionChain: AssertionChainForFunc<
+  State,
+  typeof cloneFluidDataAt
+> = {
+  "should clone the fluid data at the anchor and selector": (
+    state,
+    args,
+    result
+  ) => {
+    const [fluidData, anchor, selector, property] = args;
+    expect(result.anchors[anchor].selectors[selector]).not.toBe(
+      fluidData.anchors?.[anchor]?.selectors?.[selector]
+    );
+    if (result.anchors[anchor].selectors[selector].properties[property]) {
+      expect(
+        result.anchors[anchor].selectors[selector].properties[property]
+      ).not.toBe(
+        fluidData.anchors?.[anchor]?.selectors?.[selector]?.properties?.[
+          property
+        ]
+      );
+    }
+  },
+};
 const defaultAssertions = {
   parseDoc: parseDocAssertionChain,
   extractBreakpointsAndBaseline: extractBreakpointsAndBaselineAssertionChain,
@@ -329,6 +355,7 @@ const defaultAssertions = {
   seekAndInsertFluidRange: seekAndInsertFluidRangeAssertionChain,
   insertFluidRange: insertFluidRangeAssertionChain,
   handleAutoForcedProperty: handleAutoForcedPropertyAssertionChain,
+  cloneFluidDataAt: cloneFluidDataAtAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -430,6 +457,12 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
     handleAutoForcedProperty,
     "handleAutoForcedProperty"
   );
+
+  cloneFluidDataAt = this.wrapFn(cloneFluidDataAt, "cloneFluidDataAt", {
+    deepClone: {
+      result: true,
+    },
+  });
 }
 
 const assertionMaster = new DocParserAssertionMaster();
@@ -448,7 +481,8 @@ function wrapAll() {
     assertionMaster.processProperty,
     assertionMaster.seekAndInsertFluidRange,
     assertionMaster.insertFluidRange,
-    assertionMaster.handleAutoForcedProperty
+    assertionMaster.handleAutoForcedProperty,
+    assertionMaster.cloneFluidDataAt
   );
 }
 

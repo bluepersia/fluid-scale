@@ -298,9 +298,8 @@ let insertFluidRange = (fluidData: FluidData, ctx: InsertFluidRangeContext) => {
   const { nextBatch, minValue, event } = ctx;
   const anchor = extractAnchor(selector);
   fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
-  const anchorData = fluidData.addAnchor(anchor);
-  const selectorData = anchorData.addSelector(selector);
-  const propertyData = selectorData.addRangedProperty(property);
+  const propertyData =
+    fluidData.anchors[anchor].selectors[selector].addRangedProperty(property);
   propertyData.ranges.push({
     minBp: width,
     maxBp: nextBatch.width,
@@ -321,12 +320,12 @@ let insertFluidRange = (fluidData: FluidData, ctx: InsertFluidRangeContext) => {
   return fluidData;
 };
 
-function cloneFluidDataAt(
+let cloneFluidDataAt = (
   fluidData: FluidData,
   anchor: string,
   selector: string,
   property: string
-): FluidData {
+): FluidData => {
   const newFluidData = new FluidData(fluidData.global);
   newFluidData.anchors = { ...fluidData.anchors };
 
@@ -344,8 +343,11 @@ function cloneFluidDataAt(
     }
   }
 
+  const anchorData = newFluidData.addAnchor(anchor);
+  anchorData.addSelector(selector);
+
   return newFluidData;
-}
+};
 
 let handleAutoForcedProperty = (
   fluidData: FluidData,
@@ -367,10 +369,11 @@ let handleAutoForcedProperty = (
     return fluidData;
   }
   fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
-  const anchorData = fluidData.addAnchor(anchor);
-  const selectorData = anchorData.addSelector(selector);
 
-  const propertyData = selectorData.addAutoForcedProperty(property);
+  const propertyData =
+    fluidData.anchors[anchor].selectors[selector].addAutoForcedProperty(
+      property
+    );
   propertyData.value = minValue;
   propertyData.metaData.orderID = rule.orderID;
   event?.emitOne(
@@ -451,7 +454,8 @@ function wrap(
   processPropertyWrapped: typeof processProperty,
   seekAndInsertFluidRangeWrapped: typeof seekAndInsertFluidRange,
   insertFluidRangeWrapped: typeof insertFluidRange,
-  handleAutoForcedPropertyWrapped: typeof handleAutoForcedProperty
+  handleAutoForcedPropertyWrapped: typeof handleAutoForcedProperty,
+  cloneFluidDataAtWrapped: typeof cloneFluidDataAt
 ) {
   parseDoc = parseDocWrapped;
   extractBreakpointsAndBaseline = extractBreakpointsAndBaselineWrapped;
@@ -466,6 +470,7 @@ function wrap(
   seekAndInsertFluidRange = seekAndInsertFluidRangeWrapped;
   insertFluidRange = insertFluidRangeWrapped;
   handleAutoForcedProperty = handleAutoForcedPropertyWrapped;
+  cloneFluidDataAt = cloneFluidDataAtWrapped;
 }
 
 export {
@@ -483,5 +488,6 @@ export {
   shouldStopSeeking,
   insertFluidRange,
   handleAutoForcedProperty,
+  cloneFluidDataAt,
   wrap,
 };
