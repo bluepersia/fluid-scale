@@ -21,6 +21,7 @@ import {
   processProperty,
   seekAndInsertFluidRange,
   insertFluidRange,
+  handleAutoForcedProperty,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -289,6 +290,31 @@ const insertFluidRangeAssertionChain: AssertionChainForFunc<
       }
     }),
 };
+
+const handleAutoForcedPropertyAssertionChain: AssertionChainForFunc<
+  State,
+  typeof handleAutoForcedProperty
+> = {
+  "should handle the auto forced property": (state, args, result) =>
+    withEventNames(
+      args,
+      ["insertFluidData", "omitFluidDataInsertion"],
+      (events) => {
+        expect(Object.keys(events).length).toBe(1);
+        if (events.insertFluidData) {
+          assertFluidDataInsertion(
+            events.insertFluidData,
+            result,
+            state.master!.fluidData
+          );
+        } else if (events.omitFluidDataInsertion) {
+          expect(result).toBe(args[0]);
+        } else {
+          throw new Error("Unexpected event");
+        }
+      }
+    ),
+};
 const defaultAssertions = {
   parseDoc: parseDocAssertionChain,
   extractBreakpointsAndBaseline: extractBreakpointsAndBaselineAssertionChain,
@@ -302,6 +328,7 @@ const defaultAssertions = {
   processProperty: processPropertyAssertionChain,
   seekAndInsertFluidRange: seekAndInsertFluidRangeAssertionChain,
   insertFluidRange: insertFluidRangeAssertionChain,
+  handleAutoForcedProperty: handleAutoForcedPropertyAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -398,6 +425,11 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
   );
 
   insertFluidRange = this.wrapFn(insertFluidRange, "insertFluidRange");
+
+  handleAutoForcedProperty = this.wrapFn(
+    handleAutoForcedProperty,
+    "handleAutoForcedProperty"
+  );
 }
 
 const assertionMaster = new DocParserAssertionMaster();
@@ -415,7 +447,8 @@ function wrapAll() {
     assertionMaster.processSelectorInRule,
     assertionMaster.processProperty,
     assertionMaster.seekAndInsertFluidRange,
-    assertionMaster.insertFluidRange
+    assertionMaster.insertFluidRange,
+    assertionMaster.handleAutoForcedProperty
   );
 }
 

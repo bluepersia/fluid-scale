@@ -450,7 +450,8 @@ function wrap(
   processSelectorInRuleWrapped: typeof processSelectorInRule,
   processPropertyWrapped: typeof processProperty,
   seekAndInsertFluidRangeWrapped: typeof seekAndInsertFluidRange,
-  insertFluidRangeWrapped: typeof insertFluidRange
+  insertFluidRangeWrapped: typeof insertFluidRange,
+  handleAutoForcedPropertyWrapped: typeof handleAutoForcedProperty
 ) {
   parseDoc = parseDocWrapped;
   extractBreakpointsAndBaseline = extractBreakpointsAndBaselineWrapped;
@@ -464,6 +465,7 @@ function wrap(
   processProperty = processPropertyWrapped;
   seekAndInsertFluidRange = seekAndInsertFluidRangeWrapped;
   insertFluidRange = insertFluidRangeWrapped;
+  handleAutoForcedProperty = handleAutoForcedPropertyWrapped;
 }
 
 export {
@@ -480,5 +482,6 @@ export {
   seekAndInsertFluidRange,
   shouldStopSeeking,
   insertFluidRange,
+  handleAutoForcedProperty,
   wrap,
 };
