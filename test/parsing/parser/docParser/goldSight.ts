@@ -237,7 +237,7 @@ const seekAndInsertFluidRangeAssertionChain: AssertionChainForFunc<
       (events, eventBus) => {
         if (Object.keys(events).length <= 0) {
           const [property] = args;
-          const { selector, rule, width } = args[2];
+          const { selector, rule } = args[2];
           const allEvents = [
             ...filterEventsByPayload(eventBus, "insertFluidData", {
               selector,

@@ -268,12 +268,13 @@ let seekAndInsertFluidRange = (
       }
     }
   }
-  event?.emit("omitFluidDataInsertion", ctx, {
-    selector,
-    property,
-    rule,
-    why: "noMatch",
-  });
+  if (dev)
+    event?.emit("omitFluidDataInsertion", ctx, {
+      selector,
+      property,
+      rule,
+      why: "noMatch",
+    });
   return { didMatch: false, newFluidData: fluidData };
 };
 
@@ -307,16 +308,17 @@ let insertFluidRange = (fluidData: FluidData, ctx: InsertFluidRangeContext) => {
     maxValue: parseFluidValue2D(nextValue),
   });
   propertyData.metaData.orderID = rule.orderID;
-  event?.emit("insertFluidData", ctx, {
-    type: "range",
-    rule,
-    anchor,
-    selector,
-    property,
-    rangeIndex: propertyData.ranges.length - 1,
-    propertyData,
-    width,
-  });
+  if (dev)
+    event?.emit("insertFluidData", ctx, {
+      type: "range",
+      rule,
+      anchor,
+      selector,
+      property,
+      rangeIndex: propertyData.ranges.length - 1,
+      propertyData,
+      width,
+    });
   return fluidData;
 };
 
@@ -356,16 +358,17 @@ let handleAutoForcedProperty = (
   const { selector, property, rule, minValue, event } = ctx;
   const anchor = extractAnchor(selector);
   if (fluidData.anchors[anchor]?.selectors[selector]?.properties[property]) {
-    event?.emitOne(
-      "omitFluidDataInsertion",
-      ctx,
-      {
-        selector,
-        property,
-        rule,
-      },
-      { why: "propertyAlreadyExists" }
-    );
+    if (dev)
+      event?.emitOne(
+        "omitFluidDataInsertion",
+        ctx,
+        {
+          selector,
+          property,
+          rule,
+        },
+        { why: "propertyAlreadyExists" }
+      );
     return fluidData;
   }
   fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
@@ -376,20 +379,21 @@ let handleAutoForcedProperty = (
     );
   propertyData.value = minValue;
   propertyData.metaData.orderID = rule.orderID;
-  event?.emitOne(
-    "insertFluidData",
-    ctx,
-    {
-      selector,
-      property,
-      rule,
-    },
-    {
-      type: "forced",
-      anchor,
-      propertyData,
-    }
-  );
+  if (dev)
+    event?.emitOne(
+      "insertFluidData",
+      ctx,
+      {
+        selector,
+        property,
+        rule,
+      },
+      {
+        type: "forced",
+        anchor,
+        propertyData,
+      }
+    );
   return fluidData;
 };
 
