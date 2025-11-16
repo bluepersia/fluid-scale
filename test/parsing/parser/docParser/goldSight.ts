@@ -234,41 +234,25 @@ const seekAndInsertFluidRangeAssertionChain: AssertionChainForFunc<
     withEventNames(
       args,
       ["insertFluidData", "omitFluidDataInsertion"],
-      (events, eventBus) => {
-        if (Object.keys(events).length <= 0) {
-          const [property] = args;
-          const { selector, rule } = args[2];
-          const allEvents = [
-            ...filterEventsByPayload(eventBus, "insertFluidData", {
-              selector,
-              rule,
-              property,
-            }),
-            ...filterEventsByPayload(eventBus, "omitFluidDataInsertion", {
-              selector,
-              rule,
-              property,
-            }),
-          ];
-          expect(allEvents.length).toBe(1);
-        } else {
-          expect(Object.keys(events).length).toBe(1);
+      (events) => {
+        expect(Object.keys(events).length).toBe(1);
 
-          if (events.insertFluidData) {
-            assertFluidDataInsertion(
-              events.insertFluidData,
-              result.newFluidData,
-              state.master!.fluidData
-            );
-            expect(result.didMatch).toBe(true);
-          } else if (events.omitFluidDataInsertion) {
-            expect(result).toBe(args[2].fluidData);
-            expect(result.didMatch).toBe(false);
-          } else {
-            console.error("EVENTS", Object.keys(events));
-            throw new Error("Unexpected event");
-          }
+        if (events.insertFluidData) {
+          assertFluidDataInsertion(
+            events.insertFluidData,
+            result.newFluidData,
+            state.master!.fluidData
+          );
+          expect(result.didMatch).toBe(true);
+        } else if (events.omitFluidDataInsertion) {
+          expect(result.newFluidData).toBe(args[2].fluidData);
+          expect(result.didMatch).toBe(false);
+        } else {
+          throw new Error("Unexpected event");
         }
+      },
+      {
+        includeOverwritten: true,
       }
     ),
 };
