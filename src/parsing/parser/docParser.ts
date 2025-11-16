@@ -194,7 +194,7 @@ let processSelectorInRule = (
   rule: StyleRuleClone,
   ctx: ProcessSelectorInRuleContext
 ): FluidData => {
-  const { batches, batchIndex, width } = ctx;
+  const { batches, batchIndex, width, event } = ctx;
   let { fluidData } = ctx;
   for (const property in rule.style) {
     const minValue = rule.style[property];
@@ -232,6 +232,15 @@ let processSelectorInRule = (
             maxValue: parseFluidValue2D(nextValue),
           });
           propertyData.metaData.orderID = rule.orderID;
+          event?.emit("insertFluidData", ctx, {
+            type: "range",
+            rule,
+            anchor,
+            selector,
+            property,
+            rangeIndex: propertyData.ranges.length - 1,
+            propertyData,
+          });
         }
       }
     }
@@ -247,6 +256,14 @@ let processSelectorInRule = (
       const propertyData = selectorData.addAutoForcedProperty(property);
       propertyData.value = minValue;
       propertyData.metaData.orderID = rule.orderID;
+      event?.emit("insertFluidData", ctx, {
+        type: "forced",
+        rule,
+        anchor,
+        selector,
+        property,
+        propertyData,
+      });
     }
   }
   return fluidData;
@@ -333,7 +350,8 @@ function wrap(
   createBatchesWrapped: typeof createBatches,
   resolveBaselineWidthWrapped: typeof resolveBaselineWidth,
   findBaselineMediaQueryWrapped: typeof findBaselineMediaQuery,
-  processBatchesWrapped: typeof processBatches
+  processBatchesWrapped: typeof processBatches,
+  processSelectorInRuleWrapped: typeof processSelectorInRule
 ) {
   parseDoc = parseDocWrapped;
   extractBreakpointsAndBaseline = extractBreakpointsAndBaselineWrapped;
@@ -343,6 +361,7 @@ function wrap(
   resolveBaselineWidth = resolveBaselineWidthWrapped;
   findBaselineMediaQuery = findBaselineMediaQueryWrapped;
   processBatches = processBatchesWrapped;
+  processSelectorInRule = processSelectorInRuleWrapped;
 }
 
 export {
@@ -354,5 +373,6 @@ export {
   resolveBaselineWidth,
   findBaselineMediaQuery,
   processBatches,
+  processSelectorInRule,
   wrap,
 };

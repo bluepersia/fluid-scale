@@ -1,5 +1,8 @@
 import AssertionMaster, {
   AssertionChainForFunc,
+  filterEventsByPayload,
+  IEvent,
+  withEventBus,
   withEventNames,
 } from "gold-sight";
 import type { ExpectStatic } from "vitest";
@@ -14,6 +17,7 @@ import {
   resolveBaselineWidth,
   findBaselineMediaQuery,
   processBatches,
+  processSelectorInRule,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -22,7 +26,7 @@ import {
   findStyleRuleInDoc,
 } from "./controller";
 import { toBeEqualDefined } from "../../../utils/vitest";
-import { FluidData } from "../../../../src/fluidData";
+import { FluidData, RangedPropertyData } from "../../../../src/fluidData";
 
 let expect: ExpectStatic;
 if (process.env.NODE_ENV === "test") {
@@ -137,6 +141,55 @@ const processBatchesAssertionChain: AssertionChainForFunc<
   },
 };
 
+function assertFluidDataInsertion(
+  event: IEvent,
+  fluidData: FluidData,
+  master: FluidData
+) {
+  const { anchor, selector, property, type } = event.payload;
+  if (type === "range") {
+    const { rangeIndex } = event.payload;
+
+    toBeEqualDefined(
+      (
+        fluidData.anchors[anchor].selectors[selector].properties[
+          property
+        ] as RangedPropertyData
+      ).ranges[rangeIndex],
+      (
+        master.anchors[anchor].selectors[selector].properties[
+          property
+        ] as RangedPropertyData
+      ).ranges[rangeIndex]
+    );
+  } else if (type === "forced") {
+    toBeEqualDefined(
+      fluidData.anchors[anchor].selectors[selector].properties[property],
+      master.anchors[anchor].selectors[selector].properties[property]
+    );
+  }
+  return true;
+}
+
+const processSelectorInRuleAssertionChain: AssertionChainForFunc<
+  State,
+  typeof processSelectorInRule
+> = {
+  "should process the selector in the rule": (state, args, result) =>
+    withEventBus(args, (eventBus) => {
+      const [selector, rule] = args;
+      const insertionEvents = filterEventsByPayload(
+        eventBus,
+        "insertFluidData",
+        { selector, rule }
+      );
+
+      for (const event of insertionEvents) {
+        assertFluidDataInsertion(event, result, state.master!.fluidData);
+      }
+    }),
+};
+
 const defaultAssertions = {
   parseDoc: parseDocAssertionChain,
   extractBreakpointsAndBaseline: extractBreakpointsAndBaselineAssertionChain,
@@ -146,6 +199,7 @@ const defaultAssertions = {
   resolveBaselineWidth: resolveBaselineWidthAssertionChain,
   findBaselineMediaQuery: findBaselineMediaQueryAssertionChain,
   processBatches: processBatchesAssertionChain,
+  processSelectorInRule: processSelectorInRuleAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -220,6 +274,11 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
   createBatches = this.wrapFn(createBatches, "createBatches");
 
   processBatches = this.wrapFn(processBatches, "processBatches");
+
+  processSelectorInRule = this.wrapFn(
+    processSelectorInRule,
+    "processSelectorInRule"
+  );
 }
 
 const assertionMaster = new DocParserAssertionMaster();
@@ -233,7 +292,8 @@ function wrapAll() {
     assertionMaster.createBatches,
     assertionMaster.resolveBaselineWidth,
     assertionMaster.findBaselineMediaQuery,
-    assertionMaster.processBatches
+    assertionMaster.processBatches,
+    assertionMaster.processSelectorInRule
   );
 }
 
