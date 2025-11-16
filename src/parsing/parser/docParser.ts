@@ -445,6 +445,7 @@ function parseFluidValue(strValue: string): FluidValue {
     type: "single",
   } as FluidValueSingle;
 }
+
 function wrap(
   parseDocWrapped: typeof parseDoc,
   extractBreakpointsAndBaselineWrapped: typeof extractBreakpointsAndBaseline,
@@ -477,6 +478,10 @@ function wrap(
   cloneFluidDataAt = cloneFluidDataAtWrapped;
 }
 
+function setProcessProperty(processPropertyWrapped: typeof processProperty) {
+  processProperty = processPropertyWrapped;
+}
+
 export {
   parseDoc,
   extractBreakpointsAndBaseline,
@@ -494,4 +499,5 @@ export {
   handleAutoForcedProperty,
   cloneFluidDataAt,
   wrap,
+  setProcessProperty,
 };
