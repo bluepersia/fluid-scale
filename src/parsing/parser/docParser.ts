@@ -268,6 +268,11 @@ let processProperty = (
     const anchorData = fluidData.addAnchor(anchor);
     const selectorData = anchorData.addSelector(selector);
     if (selectorData.properties[property]) {
+      event?.emit("omitForcedProperty", ctx, {
+        selector,
+        property,
+        why: "propertyAlreadyExists",
+      });
       return fluidData;
     }
     const propertyData = selectorData.addAutoForcedProperty(property);
@@ -367,7 +372,8 @@ function wrap(
   resolveBaselineWidthWrapped: typeof resolveBaselineWidth,
   findBaselineMediaQueryWrapped: typeof findBaselineMediaQuery,
   processBatchesWrapped: typeof processBatches,
-  processSelectorInRuleWrapped: typeof processSelectorInRule
+  processSelectorInRuleWrapped: typeof processSelectorInRule,
+  processPropertyWrapped: typeof processProperty
 ) {
   parseDoc = parseDocWrapped;
   extractBreakpointsAndBaseline = extractBreakpointsAndBaselineWrapped;
@@ -378,6 +384,7 @@ function wrap(
   findBaselineMediaQuery = findBaselineMediaQueryWrapped;
   processBatches = processBatchesWrapped;
   processSelectorInRule = processSelectorInRuleWrapped;
+  processProperty = processPropertyWrapped;
 }
 
 export {
@@ -390,5 +397,6 @@ export {
   findBaselineMediaQuery,
   processBatches,
   processSelectorInRule,
+  processProperty,
   wrap,
 };

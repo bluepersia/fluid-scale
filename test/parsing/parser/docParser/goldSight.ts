@@ -18,6 +18,7 @@ import {
   findBaselineMediaQuery,
   processBatches,
   processSelectorInRule,
+  processProperty,
 } from "../../../../src/parsing/parser/docParser";
 import {
   findMediaBatchInBatchState,
@@ -190,6 +191,26 @@ const processSelectorInRuleAssertionChain: AssertionChainForFunc<
     }),
 };
 
+const processPropertyAssertionChain: AssertionChainForFunc<
+  State,
+  typeof processProperty
+> = {
+  "should process the property": (state, args, result) =>
+    withEventNames(
+      args,
+      ["insertFluidData", "omitForcedProperty"],
+      (events) => {
+        expect(Object.keys(events).length).toBe(1);
+        if (events.insertFluidData) {
+          assertFluidDataInsertion(
+            events.insertFluidData,
+            result,
+            state.master!.fluidData
+          );
+        }
+      }
+    ),
+};
 const defaultAssertions = {
   parseDoc: parseDocAssertionChain,
   extractBreakpointsAndBaseline: extractBreakpointsAndBaselineAssertionChain,
@@ -200,6 +221,7 @@ const defaultAssertions = {
   findBaselineMediaQuery: findBaselineMediaQueryAssertionChain,
   processBatches: processBatchesAssertionChain,
   processSelectorInRule: processSelectorInRuleAssertionChain,
+  processProperty: processPropertyAssertionChain,
 };
 
 class DocParserAssertionMaster extends AssertionMaster<State, Master> {
@@ -279,6 +301,16 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
     processSelectorInRule,
     "processSelectorInRule"
   );
+
+  processProperty = this.wrapFn(processProperty, "processProperty", {
+    getAddress: (state, args) => {
+      return {
+        selector: args[1].selector,
+        property: args[0],
+        width: args[2].width,
+      };
+    },
+  });
 }
 
 const assertionMaster = new DocParserAssertionMaster();
@@ -293,7 +325,8 @@ function wrapAll() {
     assertionMaster.resolveBaselineWidth,
     assertionMaster.findBaselineMediaQuery,
     assertionMaster.processBatches,
-    assertionMaster.processSelectorInRule
+    assertionMaster.processSelectorInRule,
+    assertionMaster.processProperty
   );
 }
 
