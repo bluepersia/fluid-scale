@@ -15,6 +15,7 @@ import type {
 import type {
   BatchState,
   DocParserResults,
+  HandleAutoForcedPropertyContext,
   InsertFluidRangeContext,
   ParseDocContext,
   ProcessPropertyContext,
@@ -213,7 +214,6 @@ let processProperty = (
   rule: StyleRuleClone,
   ctx: ProcessPropertyContext
 ): FluidData => {
-  const { selector, event } = ctx;
   let { fluidData } = ctx;
   const minValue = rule.style[property];
 
@@ -225,41 +225,12 @@ let processProperty = (
   fluidData = newFluidData;
   const { autoForce } = ctx;
   if (!didMatch && autoForce) {
-    const anchor = extractAnchor(selector);
-    if (fluidData.anchors[anchor]?.selectors[selector]?.properties[property]) {
-      event?.emitOne(
-        "omitFluidDataInsertion",
-        ctx,
-        {
-          selector,
-          property,
-          rule,
-        },
-        { why: "propertyAlreadyExists" }
-      );
-      return fluidData;
-    }
-    fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
-    const anchorData = fluidData.addAnchor(anchor);
-    const selectorData = anchorData.addSelector(selector);
-
-    const propertyData = selectorData.addAutoForcedProperty(property);
-    propertyData.value = minValue;
-    propertyData.metaData.orderID = rule.orderID;
-    event?.emitOne(
-      "insertFluidData",
-      ctx,
-      {
-        selector,
-        property,
-        rule,
-      },
-      {
-        type: "forced",
-        anchor,
-        propertyData,
-      }
-    );
+    fluidData = handleAutoForcedProperty(fluidData, {
+      ...ctx,
+      property,
+      minValue,
+      rule,
+    });
   }
   return fluidData;
 };
@@ -375,6 +346,50 @@ function cloneFluidDataAt(
 
   return newFluidData;
 }
+
+let handleAutoForcedProperty = (
+  fluidData: FluidData,
+  ctx: HandleAutoForcedPropertyContext
+) => {
+  const { selector, property, rule, minValue, event } = ctx;
+  const anchor = extractAnchor(selector);
+  if (fluidData.anchors[anchor]?.selectors[selector]?.properties[property]) {
+    event?.emitOne(
+      "omitFluidDataInsertion",
+      ctx,
+      {
+        selector,
+        property,
+        rule,
+      },
+      { why: "propertyAlreadyExists" }
+    );
+    return fluidData;
+  }
+  fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
+  const anchorData = fluidData.addAnchor(anchor);
+  const selectorData = anchorData.addSelector(selector);
+
+  const propertyData = selectorData.addAutoForcedProperty(property);
+  propertyData.value = minValue;
+  propertyData.metaData.orderID = rule.orderID;
+  event?.emitOne(
+    "insertFluidData",
+    ctx,
+    {
+      selector,
+      property,
+      rule,
+    },
+    {
+      type: "forced",
+      anchor,
+      propertyData,
+    }
+  );
+  return fluidData;
+};
+
 function splitSelector(selector: string) {
   return selector.split(",").map((s) => s.trim());
 }

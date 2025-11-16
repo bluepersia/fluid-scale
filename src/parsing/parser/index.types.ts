@@ -24,6 +24,12 @@ type InsertFluidRangeContext = SeekAndInsertFluidRangeContext & {
   nextBatch: RuleBatch;
   minValue: string;
 };
+type HandleAutoForcedPropertyContext = ProcessPropertyContext & {
+  minValue: string;
+  property: string;
+  rule: StyleRuleClone;
+};
+
 type DocParserResults = {
   breakpoints: number[];
   fluidData: FluidData;
@@ -48,4 +54,5 @@ export type {
   ProcessPropertyContext,
   SeekAndInsertFluidRangeContext,
   InsertFluidRangeContext,
+  HandleAutoForcedPropertyContext,
 };
