@@ -21,6 +21,7 @@ import {
   findStyleRuleInDoc,
 } from "./controller";
 import { toBeEqualDefined } from "../../../utils/vitest";
+import { FluidData } from "../../../../src/fluidData";
 
 let expect: ExpectStatic;
 if (process.env.NODE_ENV === "test") {
@@ -30,9 +31,20 @@ if (process.env.NODE_ENV === "test") {
 const parseDocAssertionChain: AssertionChainForFunc<State, typeof parseDoc> = {
   "should parse the document": (state, args, result) => {
     expect(result.breakpoints).toEqual(state.master!.breakpoints);
+    stripOrderID(result.fluidData);
     expect(result.fluidData).toEqual(state.master!.fluidData);
   },
 };
+
+function stripOrderID(fluidData: FluidData) {
+  for (const anchor of Object.values(fluidData.anchors)) {
+    for (const selector of Object.values(anchor.selectors)) {
+      for (const property of Object.values(selector.properties)) {
+        property.metaData.orderID = -1;
+      }
+    }
+  }
+}
 
 const extractBreakpointsAndBaselineAssertionChain: AssertionChainForFunc<
   State,

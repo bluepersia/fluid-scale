@@ -134,7 +134,7 @@ class SelectorData {
 }
 
 abstract class PropertyData {
-  metaData: Omit<FluidPropMetaData, "property"> = { orderID: 0 };
+  metaData: Omit<FluidPropMetaData, "property"> = { orderID: -1 };
   // @ts-ignore
   #global: Global;
   constructor(global: Global) {

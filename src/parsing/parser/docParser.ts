@@ -65,6 +65,7 @@ let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
                   minValue: parseFluidValue2D(minValue),
                   maxValue: parseFluidValue2D(nextValue),
                 });
+                propertyData.metaData.orderID = rule.orderID;
               }
             }
           }
@@ -78,6 +79,7 @@ let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
             }
             const propertyData = selectorData.addAutoForcedProperty(property);
             propertyData.value = minValue;
+            propertyData.metaData.orderID = rule.orderID;
           }
         }
       }
