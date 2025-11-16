@@ -20,6 +20,7 @@ import {
   findStyleRuleInBatchState,
   findStyleRuleInDoc,
 } from "./controller";
+import { toBeEqualDefined } from "../../../utils/vitest";
 
 let expect: ExpectStatic;
 if (process.env.NODE_ENV === "test") {
@@ -96,7 +97,7 @@ const batchMediaRuleAssertionChain: AssertionChainForFunc<
           result,
           state.mediaRuleIndex
         );
-        expect(resultBatch).toEqual(masterBatch);
+        toBeEqualDefined(resultBatch, masterBatch);
       } else if (events.omitMediaRule) {
         expect(result).toBe(args[1]);
       } else {
@@ -185,7 +186,12 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
         width: args[0].minWidth,
       };
     },
-    post: (state) => state.mediaRuleIndex++,
+    post: (state, args) =>
+      withEventNames(args, ["batchMediaRule"], (events) => {
+        if (events.batchMediaRule) {
+          state.mediaRuleIndex++;
+        }
+      }),
   });
 
   createBatches = this.wrapFn(createBatches, "createBatches");
