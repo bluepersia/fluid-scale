@@ -16,6 +16,7 @@ import type {
   BatchState,
   DocParserResults,
   ParseDocContext,
+  ProcessSelectorInRuleContext,
   RuleBatch,
 } from "./index.types";
 
@@ -170,68 +171,112 @@ let processBatches = (
   batches: RuleBatch[],
   ctx: ParseDocContext
 ): FluidData => {
-  const fluidData = new FluidData(ctx);
+  let fluidData = new FluidData(ctx);
   for (const [batchIndex, batch] of batches.entries()) {
     const { rules, width } = batch;
     for (const rule of rules) {
       for (const selector of splitSelector(rule.selector)) {
-        for (const property in rule.style) {
-          const minValue = rule.style[property];
-
-          let mediaSeen = false;
-          const { seekAlg } = ctx;
-          let didMatch = false;
-          seekMaxLoop: for (const nextBatch of batches.slice(batchIndex + 1)) {
-            if (!nextBatch.isMedia) {
-              if (
-                seekAlg === "stopAt1stNonMedia" ||
-                (seekAlg === "stopAfterMedia" && mediaSeen)
-              ) {
-                break seekMaxLoop;
-              }
-            } else {
-              mediaSeen = true;
-            }
-            for (const nextRule of nextBatch.rules) {
-              if (!splitSelector(nextRule.selector).includes(selector)) {
-                continue;
-              }
-              const nextValue = nextRule.style[property];
-              if (nextValue) {
-                didMatch = true;
-                const anchor = extractAnchor(selector);
-                const anchorData = fluidData.addAnchor(anchor);
-                const selectorData = anchorData.addSelector(selector);
-                const propertyData = selectorData.addRangedProperty(property);
-                propertyData.ranges.push({
-                  minBp: width,
-                  maxBp: nextBatch.width,
-                  minValue: parseFluidValue2D(minValue),
-                  maxValue: parseFluidValue2D(nextValue),
-                });
-                propertyData.metaData.orderID = rule.orderID;
-              }
-            }
-          }
-          const { autoForce } = ctx;
-          if (!didMatch && autoForce) {
-            const anchor = extractAnchor(selector);
-            const anchorData = fluidData.addAnchor(anchor);
-            const selectorData = anchorData.addSelector(selector);
-            if (selectorData.properties[property]) {
-              continue;
-            }
-            const propertyData = selectorData.addAutoForcedProperty(property);
-            propertyData.value = minValue;
-            propertyData.metaData.orderID = rule.orderID;
-          }
-        }
+        fluidData = processSelectorInRule(selector, rule, {
+          ...ctx,
+          batchIndex,
+          batches,
+          width,
+          fluidData,
+        });
       }
     }
   }
   return fluidData;
 };
 
+let processSelectorInRule = (
+  selector: string,
+  rule: StyleRuleClone,
+  ctx: ProcessSelectorInRuleContext
+): FluidData => {
+  const { batches, batchIndex, width } = ctx;
+  let { fluidData } = ctx;
+  for (const property in rule.style) {
+    const minValue = rule.style[property];
+
+    let mediaSeen = false;
+    const { seekAlg } = ctx;
+    let didMatch = false;
+    seekMaxLoop: for (const nextBatch of batches.slice(batchIndex + 1)) {
+      if (!nextBatch.isMedia) {
+        if (
+          seekAlg === "stopAt1stNonMedia" ||
+          (seekAlg === "stopAfterMedia" && mediaSeen)
+        ) {
+          break seekMaxLoop;
+        }
+      } else {
+        mediaSeen = true;
+      }
+      for (const nextRule of nextBatch.rules) {
+        if (!splitSelector(nextRule.selector).includes(selector)) {
+          continue;
+        }
+        const nextValue = nextRule.style[property];
+        if (nextValue) {
+          didMatch = true;
+          const anchor = extractAnchor(selector);
+          fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
+          const anchorData = fluidData.addAnchor(anchor);
+          const selectorData = anchorData.addSelector(selector);
+          const propertyData = selectorData.addRangedProperty(property);
+          propertyData.ranges.push({
+            minBp: width,
+            maxBp: nextBatch.width,
+            minValue: parseFluidValue2D(minValue),
+            maxValue: parseFluidValue2D(nextValue),
+          });
+          propertyData.metaData.orderID = rule.orderID;
+        }
+      }
+    }
+    const { autoForce } = ctx;
+    if (!didMatch && autoForce) {
+      const anchor = extractAnchor(selector);
+      fluidData = cloneFluidDataAt(fluidData, anchor, selector, property);
+      const anchorData = fluidData.addAnchor(anchor);
+      const selectorData = anchorData.addSelector(selector);
+      if (selectorData.properties[property]) {
+        continue;
+      }
+      const propertyData = selectorData.addAutoForcedProperty(property);
+      propertyData.value = minValue;
+      propertyData.metaData.orderID = rule.orderID;
+    }
+  }
+  return fluidData;
+};
+
+function cloneFluidDataAt(
+  fluidData: FluidData,
+  anchor: string,
+  selector: string,
+  property: string
+): FluidData {
+  const newFluidData = new FluidData(fluidData.global);
+  newFluidData.anchors = { ...fluidData.anchors };
+
+  if (newFluidData.anchors[anchor]) {
+    const anchorData = (newFluidData.anchors[anchor] =
+      newFluidData.anchors[anchor].clone());
+
+    if (anchorData.selectors[selector]) {
+      const selectorData = (anchorData.selectors[selector] =
+        anchorData.selectors[selector].clone());
+
+      if (selectorData.properties[property])
+        selectorData.properties[property] =
+          selectorData.properties[property].clone();
+    }
+  }
+
+  return newFluidData;
+}
 function splitSelector(selector: string) {
   return selector.split(",").map((s) => s.trim());
 }

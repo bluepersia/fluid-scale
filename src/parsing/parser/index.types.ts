@@ -5,6 +5,12 @@ import type { FluidData } from "../../fluidData";
 
 type ParseDocContext = Global & EventContext & {};
 
+type ProcessSelectorInRuleContext = ParseDocContext & {
+  batchIndex: number;
+  batches: RuleBatch[];
+  width: number;
+  fluidData: FluidData;
+};
 type DocParserResults = {
   breakpoints: number[];
   fluidData: FluidData;
@@ -20,4 +26,10 @@ type BatchState = {
   currentBatch: RuleBatch | null;
   batches: RuleBatch[];
 };
-export type { DocParserResults, RuleBatch, BatchState, ParseDocContext };
+export type {
+  DocParserResults,
+  RuleBatch,
+  BatchState,
+  ParseDocContext,
+  ProcessSelectorInRuleContext,
+};

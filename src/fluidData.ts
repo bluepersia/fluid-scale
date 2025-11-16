@@ -31,6 +31,10 @@ class FluidData {
     this.#global = global;
   }
 
+  get global() {
+    return this.#global;
+  }
+
   addAnchor(key: string) {
     if (this.anchors[key]) {
       return this.anchors[key];
@@ -94,6 +98,12 @@ class AnchorData {
     this.selectors[key] = new SelectorData(this.#global);
     return this.selectors[key];
   }
+
+  clone(): AnchorData {
+    const newAnchorData = new AnchorData(this.#global);
+    newAnchorData.selectors = { ...this.selectors };
+    return newAnchorData;
+  }
 }
 
 class SelectorData {
@@ -131,6 +141,12 @@ class SelectorData {
     ));
     return result;
   }
+
+  clone(): SelectorData {
+    const newSelectorData = new SelectorData(this.#global);
+    newSelectorData.properties = { ...this.properties };
+    return newSelectorData;
+  }
 }
 
 abstract class PropertyData {
@@ -140,14 +156,37 @@ abstract class PropertyData {
   constructor(global: Global) {
     this.#global = global;
   }
+  get global() {
+    return this.#global;
+  }
+
+  abstract clone(): PropertyData;
 }
 
 class RangedPropertyData extends PropertyData {
   ranges: FluidRange[] = [];
+  clone(): RangedPropertyData {
+    const newRangedPropertyData = new RangedPropertyData(this.global);
+    newRangedPropertyData.ranges = [...this.ranges];
+    return newRangedPropertyData;
+  }
 }
 
 class AutoForcedPropertyData extends PropertyData {
   value: string = "";
+
+  clone(): AutoForcedPropertyData {
+    const newAutoForcedPropertyData = new AutoForcedPropertyData(this.global);
+    newAutoForcedPropertyData.value = this.value;
+    return newAutoForcedPropertyData;
+  }
 }
 
-export { FluidData };
+export {
+  FluidData,
+  AnchorData,
+  SelectorData,
+  PropertyData,
+  RangedPropertyData,
+  AutoForcedPropertyData,
+};
