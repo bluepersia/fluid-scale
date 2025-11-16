@@ -95,11 +95,29 @@ class SelectorData {
     this.#global = global;
   }
   addRangedProperty(key: string): RangedPropertyData {
-    const result = new RangedPropertyData(this.#global);
+    if (this.properties[key]) {
+      const result = this.properties[key];
+      if (result instanceof RangedPropertyData) {
+        return result;
+      }
+      throw new Error("Property already exists but is not a ranged property");
+    }
+    const result = (this.properties[key] = new RangedPropertyData(
+      this.#global
+    ));
     this.properties[key] = result;
     return result;
   }
   addAutoForcedProperty(key: string): AutoForcedPropertyData {
+    if (this.properties[key]) {
+      const result = this.properties[key];
+      if (result instanceof AutoForcedPropertyData) {
+        return result;
+      }
+      throw new Error(
+        "Property already exists but is not an auto forced property"
+      );
+    }
     const result = (this.properties[key] = new AutoForcedPropertyData(
       this.#global
     ));

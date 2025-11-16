@@ -2,6 +2,7 @@ type Global = UserSettings & Features;
 
 type UserSettings = {
   autoForce: boolean;
+  seekAlg: "stopAt1stNonMedia" | "stopAfterMedia" | "fullDoc";
 };
 
 type Features = {};
@@ -24,7 +25,7 @@ type FluidRange = {
 type FluidValue = {
   type: "single";
 };
-type FluidSingleValue = {
+type FluidValueSingle = {
   type: "single";
   value: number;
   unit: string;
@@ -38,5 +39,5 @@ export type {
   FluidPropMetaData,
   FluidRange,
   FluidValue,
-  FluidSingleValue,
+  FluidValueSingle,
 };

@@ -1,4 +1,11 @@
-import { MEDIA_RULE_TYPE, STYLE_RULE_TYPE } from "../../index.types";
+import { FluidData } from "../../fluidData";
+import {
+  MEDIA_RULE_TYPE,
+  STYLE_RULE_TYPE,
+  type FluidValue,
+  type FluidValueSingle,
+} from "../../index.types";
+import { splitBySpaces } from "../../utils/stringHelpers";
 import type {
   DocClone,
   MediaRuleClone,
@@ -19,12 +26,65 @@ let parseDoc = (doc: DocClone, ctx: ParseDocContext): DocParserResults => {
   const batches = createBatches(doc, globalBaselineWidth, ctx);
 
   //NEW BEGIN
+  const fluidData = new FluidData(ctx);
+  for (const [batchIndex, batch] of batches.entries()) {
+    const { rules, width } = batch;
+    for (const rule of rules) {
+      for (const selector of splitSelector(rule.selector)) {
+        for (const property in rule.style) {
+          const minValue = rule.style[property];
 
+          let mediaSeen = false;
+          const { seekAlg } = ctx;
+          let didMatch = false;
+          seekMaxLoop: for (const nextBatch of batches.slice(batchIndex + 1)) {
+            if (!nextBatch.isMedia) {
+              if (
+                seekAlg === "stopAt1stNonMedia" ||
+                (seekAlg === "stopAfterMedia" && mediaSeen)
+              ) {
+                break seekMaxLoop;
+              }
+            } else {
+              mediaSeen = true;
+            }
+            for (const nextRule of nextBatch.rules) {
+              if (!splitSelector(nextRule.selector).includes(selector)) {
+                continue;
+              }
+              const nextValue = nextRule.style[property];
+              if (nextValue) {
+                didMatch = true;
+                const anchor = extractAnchor(selector);
+                const anchorData = fluidData.addAnchor(anchor);
+                const selectorData = anchorData.addSelector(selector);
+                const propertyData = selectorData.addRangedProperty(property);
+                propertyData.ranges.push({
+                  minBp: width,
+                  maxBp: nextBatch.width,
+                  minValue: parseFluidValue(minValue),
+                  maxValue: parseFluidValue(nextValue),
+                });
+              }
+            }
+          }
+          const { autoForce } = ctx;
+          if (!didMatch && autoForce) {
+            const anchor = extractAnchor(selector);
+            const anchorData = fluidData.addAnchor(anchor);
+            const selectorData = anchorData.addSelector(selector);
+            const propertyData = selectorData.addAutoForcedProperty(property);
+            propertyData.value = minValue;
+          }
+        }
+      }
+    }
+  }
   //NEW END
 
   return {
     breakpoints,
-    batches,
+    fluidData,
   };
 };
 
@@ -158,6 +218,55 @@ let batchMediaRule = (
   }
   return newBatchState;
 };
+
+function splitSelector(selector: string) {
+  return selector.split(",").map((s) => s.trim());
+}
+
+function extractAnchor(selector: string) {
+  const selectorParts = selector.split(" ");
+  return selectorParts[selectorParts.length - 1];
+}
+
+function parseFluidValue2D(value: string): FluidValue[][] | string {
+  let depth = 0;
+  let currentValue = "";
+  let values: FluidValue[][] = [];
+  for (const char of value) {
+    if (char === "(") {
+      depth++;
+    } else if (char === ")") {
+      depth--;
+    } else if (char === "," && depth === 0) {
+      values.push(parseFluidValue1D(currentValue.trim()));
+      currentValue = "";
+    } else {
+      currentValue += char;
+    }
+  }
+  values.push(parseFluidValue1D(currentValue.trim()));
+
+  return values;
+}
+
+function parseFluidValue1D(value: string): FluidValue[] {
+  const values: string[] = splitBySpaces(value);
+  return values.map((value) => parseFluidValue(value));
+}
+
+function parseFluidValue(strValue: string): FluidValue {
+  const value = parseFloat(strValue);
+
+  // Match any alphabetic characters after the number
+  const match = strValue.match(/[a-z%]+$/i);
+  const unit = match?.[0] || "";
+
+  return {
+    value,
+    unit,
+    type: "single",
+  } as FluidValueSingle;
+}
 function wrap(
   parseDocWrapped: typeof parseDoc,
   extractBreakpointsAndBaselineWrapped: typeof extractBreakpointsAndBaseline,
