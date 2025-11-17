@@ -1,4 +1,4 @@
-import { ExpectStatic } from "vitest";
+import type { ExpectStatic } from "vitest";
 import { SetupMaster, State } from "./index.types";
 
 let expect: ExpectStatic;

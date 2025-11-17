@@ -4,7 +4,8 @@ import { setupAssertionMaster } from "./goldSight";
 import { initPlaywrightPages, teardownPlaywrightPages } from "../../setup";
 import { PlaywrightPage } from "../../index.types";
 import { AssertionBlueprint } from "gold-sight";
-
+import { assertionMaster as docClonerAssertionMaster } from "../../parsing/serialization/docCloner/goldSight";
+import { assertionMaster as docParserAssertionMaster } from "../../parsing/parser/docParser/goldSight";
 let playwrightPages: PlaywrightPage[] = [];
 beforeAll(async () => {
   playwrightPages = await initPlaywrightPages();

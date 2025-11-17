@@ -17,6 +17,8 @@ import {
 
 wrapAllSetup();
 
+import { init } from "../../src/main";
+
 export {
   getQueue,
   cloneDoc,
@@ -25,4 +27,5 @@ export {
   makeEventContext,
   makeDefaultGlobal,
   setupAssertionMaster,
+  init,
 };

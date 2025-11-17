@@ -124,6 +124,9 @@ async function onLoadBrowserPage(page: Page, blueprint?: PlaywrightBlueprint) {
 
     // @ts-expect-error global from IIFE bundle
     window.setupAssertionMaster = window.FluidScale.setupAssertionMaster;
+
+    // @ts-expect-error global from IIFE bundle
+    window.init = window.FluidScale.init;
   });
 }
 
