@@ -31,3 +31,5 @@ let init = (config: UserSettings) => {
   const allElements = Array.from(document.querySelectorAll("*"));
   addElements(allElements, config);
 };
+
+export { init };

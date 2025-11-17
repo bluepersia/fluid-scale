@@ -1,9 +1,4 @@
-import {
-  AutoForcedPropertyData,
-  FluidData,
-  RangedPropertyData,
-  type PropertyData,
-} from "../fluidData";
+import { AutoForcedPropertyData, FluidData } from "../fluidData";
 import type { ElementState, FluidProperty, GlobalState } from "../index.types";
 import { makeDefaultGlobal } from "../utils/global";
 import type { AddElementsContext } from "./index.types";
