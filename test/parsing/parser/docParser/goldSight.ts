@@ -31,7 +31,11 @@ import {
   findStyleRuleInDoc,
 } from "./controller";
 import { toBeEqualDefined } from "../../../utils/vitest";
-import { FluidData, RangedPropertyData } from "../../../../src/fluidData";
+import {
+  AutoForcedPropertyData,
+  FluidData,
+  RangedPropertyData,
+} from "../../../../src/fluidData";
 
 let expect: ExpectStatic;
 if (process.env.NODE_ENV === "test") {
@@ -145,6 +149,7 @@ const processBatchesAssertionChain: AssertionChainForFunc<
   typeof processBatches
 > = {
   "should process the batches": (state, args, result) => {
+    result = stripOrderID(result);
     expect(result).toEqual(state.master!.fluidData);
   },
 };
@@ -172,10 +177,15 @@ function assertFluidDataInsertion(
     );
   } else if (type === "forced") {
     toBeEqualDefined(
-      propertyData,
-      master.anchors[anchor].selectors[selector].properties[property]
+      (propertyData as AutoForcedPropertyData).value,
+      (
+        master.anchors[anchor].selectors[selector].properties[
+          property
+        ] as AutoForcedPropertyData
+      ).value
     );
   }
+
   expect(propertyData.metaData.orderID).toBe(event.payload.rule.orderID);
   return true;
 }
