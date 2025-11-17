@@ -22,7 +22,7 @@ describe("engineSetup", () => {
     const queue: [number, AssertionBlueprint][] = await page.evaluate(
       (master) => {
         (window as any).setupAssertionMaster.master = master;
-        (window as any).init(document, {
+        (window as any).init({
           ...(window as any).makeDefaultGlobal(),
           ...(window as any).makeEventContext(),
         });

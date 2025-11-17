@@ -1,4 +1,8 @@
-import { AutoForcedPropertyData, FluidData } from "../fluidData";
+import {
+  AutoForcedPropertyData,
+  FluidData,
+  RangedPropertyData,
+} from "../fluidData";
 import type { ElementState, FluidProperty, GlobalState } from "../index.types";
 import { makeDefaultGlobal } from "../utils/global";
 import type { AddElementsContext } from "./index.types";
@@ -101,7 +105,11 @@ let filterForcedProperties = (
     if (property.data instanceof AutoForcedPropertyData) {
       return (
         fluidProperties.reduce((prev, curr) => {
-          if (curr.property === property.property) return prev + 1;
+          if (
+            curr.property === property.property &&
+            curr.data instanceof RangedPropertyData
+          )
+            return prev + 1;
 
           return prev;
         }, 0) > 1

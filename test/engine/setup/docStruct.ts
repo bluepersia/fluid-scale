@@ -43,6 +43,7 @@ function writeSerializedElementsToDocStruct(
         property: fluidProperty.property,
         data: fluidProperty.data,
       };
+      newFluidProperty.data.metaData.orderID = -1;
       elData.push(newFluidProperty);
     }
   }
