@@ -1,4 +1,4 @@
-import { DocStruct } from "../../../../engine/docStruct/docStruct";
+import { DocStruct } from "../../../../engine/setup/docStruct";
 import { makeDefaultGlobal } from "../../../../../src/utils/global";
 import { writeProductCard } from "./product-card";
 

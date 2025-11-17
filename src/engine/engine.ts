@@ -111,4 +111,8 @@ let filterForcedProperties = (
   });
 };
 
-export { getGlobalState, addElements, resetState, initEngineState };
+function wrap(addElementsWrapped: typeof addElements) {
+  addElements = addElementsWrapped;
+}
+
+export { getGlobalState, addElements, resetState, initEngineState, wrap };

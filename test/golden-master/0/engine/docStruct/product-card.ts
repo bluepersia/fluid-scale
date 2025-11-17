@@ -1,6 +1,6 @@
 import { RangedPropertyData } from "../../../../../src/fluidData";
 import { FluidProperty } from "../../../../../src/index.types";
-import { DocStruct } from "../../../../engine/docStruct/docStruct";
+import { DocStruct } from "../../../../engine/setup/docStruct";
 import { fluidData } from "../../parsing/parser/docParser/fluidData/fluidData";
 
 function writeProductCard(docStruct: DocStruct) {
