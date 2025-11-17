@@ -1,4 +1,3 @@
-import { FuncSpy } from "gold-sight";
 import { FluidData } from "../../../../src/fluidData";
 import { RuleBatch } from "../../../../src/parsing/parser/index.types";
 import type {
@@ -13,7 +12,6 @@ type State = {
   styleRuleIndex: number;
   mediaRuleIndex: number;
   sheetIndex: number;
-  funcSpies?: Record<string, FuncSpy>;
 };
 
 type DocParserMaster = Master & {

@@ -47,10 +47,7 @@ const parseDocAssertionChain: AssertionChainForFunc<State, typeof parseDoc> = {
 };
 
 function stripOrderID(fluidData: FluidData): FluidData {
-  const clone = Object.assign(
-    Object.create(Object.getPrototypeOf(fluidData)),
-    fluidData
-  ) as FluidData;
+  const clone = structuredClone(fluidData);
 
   for (const anchor of Object.values(clone.anchors)) {
     for (const selector of Object.values(anchor.selectors)) {
@@ -158,15 +155,15 @@ function assertFluidDataInsertion(
   master: FluidData
 ) {
   const { anchor, selector, property, type } = event.payload;
+
+  const propertyData =
+    fluidData.anchors[anchor].selectors[selector].properties[property];
+
   if (type === "range") {
     const { rangeIndex } = event.payload;
 
     toBeEqualDefined(
-      (
-        fluidData.anchors[anchor].selectors[selector].properties[
-          property
-        ] as RangedPropertyData
-      ).ranges[rangeIndex],
+      (propertyData as RangedPropertyData).ranges[rangeIndex],
       (
         master.anchors[anchor].selectors[selector].properties[
           property
@@ -175,10 +172,11 @@ function assertFluidDataInsertion(
     );
   } else if (type === "forced") {
     toBeEqualDefined(
-      fluidData.anchors[anchor].selectors[selector].properties[property],
+      propertyData,
       master.anchors[anchor].selectors[selector].properties[property]
     );
   }
+  expect(propertyData.metaData.orderID).toBe(event.payload.rule.orderID);
   return true;
 }
 
@@ -204,12 +202,15 @@ const processSelectorInRuleAssertionChain: AssertionChainForFunc<
         assertFluidDataInsertion(event, result, state.master!.fluidData);
       }
 
-      expect(
-        state.funcSpies!.processProperty.calls.map((call) => [
-          call.args[0],
-          call.args[1],
-        ])
-      ).toEqual(Object.keys(rule.style).map((property) => [property, rule]));
+      for (const property of Object.keys(rule.style)) {
+        const assertion = assertions.find(
+          (assertion) =>
+            assertion.name === "processProperty" &&
+            assertion.args[0] === property &&
+            assertion.args[1] === rule
+        );
+        expect(assertion).toBeDefined();
+      }
     }),
 };
 
