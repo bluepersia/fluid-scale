@@ -198,6 +198,13 @@ const processSelectorInRuleAssertionChain: AssertionChainForFunc<
       for (const event of insertionEvents) {
         assertFluidDataInsertion(event, result, state.master!.fluidData);
       }
+
+      for (const property of Object.keys(rule.style)) {
+        const call = state.funcSpies!.processProperty.calls.find(
+          (call) => call.args[0] === property && call.args[1] === rule
+        );
+        expect(call).toBeDefined();
+      }
     }),
 };
 

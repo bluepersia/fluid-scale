@@ -1,29 +1,14 @@
-import {
-  describe,
-  test,
-  expect,
-  vi,
-  beforeEach,
-  beforeAll,
-  afterAll,
-} from "vitest";
+import { describe, test, expect } from "vitest";
 import { collection } from "./collection";
 import { assertionMaster } from "./goldSight";
 
 import {
   parseDoc,
-  setProcessProperty,
   shouldStopSeeking,
 } from "../../../../src/parsing/parser/docParser";
-import * as docParser from "../../../../src/parsing/parser/docParser";
 import { makeDefaultGlobal } from "../../../../src/utils/global";
 import { makeEventContext } from "gold-sight";
-import {
-  ProcessSelectorInRuleContext,
-  RuleBatch,
-} from "../../../../src/parsing/parser/index.types";
-import { FluidData } from "../../../../src/fluidData";
-import { StyleRuleClone } from "../../../../src/parsing/serialization/docClone";
+import { RuleBatch } from "../../../../src/parsing/parser/index.types";
 describe("docParser", () => {
   test.each(collection)("should parse the document", (master) => {
     assertionMaster.master = master;
@@ -106,51 +91,5 @@ describe("shouldStopSeeking", () => {
       seekAlg
     );
     expect(result).toBe(false);
-  });
-});
-
-describe("processSelectorInRule", () => {
-  let processPropertyOriginal;
-  let spyProcessProperty;
-  beforeAll(() => {
-    processPropertyOriginal = docParser.processProperty;
-    spyProcessProperty = vi.spyOn(docParser, "processProperty");
-    setProcessProperty(spyProcessProperty);
-  });
-  afterAll(() => {
-    setProcessProperty(processPropertyOriginal);
-  });
-  test("should process all the properties in the rule", () => {
-    const selector: string = "selector";
-    const rule: StyleRuleClone = new StyleRuleClone(makeDefaultGlobal());
-    rule.selector = selector;
-    rule.style = {
-      prop1: "value1",
-      prop2: "value2",
-      prop3: "value3",
-    };
-    const ctx: ProcessSelectorInRuleContext = {
-      ...makeDefaultGlobal(),
-      ...makeEventContext(),
-      fluidData: new FluidData(makeDefaultGlobal()),
-      batchIndex: 0,
-      batches: [],
-      width: 0,
-    };
-
-    docParser.processSelectorInRule(selector, rule, ctx);
-
-    expect(spyProcessProperty).toHaveBeenCalledTimes(
-      Object.keys(rule.style).length
-    );
-    expect(spyProcessProperty.mock.calls[0][0]).toBe("prop1");
-    expect(spyProcessProperty.mock.calls[1][0]).toBe("prop2");
-    expect(spyProcessProperty.mock.calls[2][0]).toBe("prop3");
-    expect(spyProcessProperty.mock.calls[0][1]).toBe(rule);
-    expect(spyProcessProperty.mock.calls[1][1]).toBe(rule);
-    expect(spyProcessProperty.mock.calls[2][1]).toBe(rule);
-    expect(spyProcessProperty.mock.calls[0][2]).toBeDefined();
-    expect(spyProcessProperty.mock.calls[1][2]).toBeDefined();
-    expect(spyProcessProperty.mock.calls[2][2]).toBeDefined();
   });
 });

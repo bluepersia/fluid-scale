@@ -478,10 +478,6 @@ function wrap(
   cloneFluidDataAt = cloneFluidDataAtWrapped;
 }
 
-function setProcessProperty(processPropertyWrapped: typeof processProperty) {
-  processProperty = processPropertyWrapped;
-}
-
 export {
   parseDoc,
   extractBreakpointsAndBaseline,
@@ -499,5 +495,4 @@ export {
   handleAutoForcedProperty,
   cloneFluidDataAt,
   wrap,
-  setProcessProperty,
 };
