@@ -186,7 +186,12 @@ const processSelectorInRuleAssertionChain: AssertionChainForFunc<
   State,
   typeof processSelectorInRule
 > = {
-  "should process the selector in the rule": (state, args, result) =>
+  "should process the selector in the rule": (
+    state,
+    args,
+    result,
+    assertions
+  ) =>
     withEventBus(args, (eventBus) => {
       const [selector, rule] = args;
       const insertionEvents = filterEventsByPayload(
@@ -199,12 +204,12 @@ const processSelectorInRuleAssertionChain: AssertionChainForFunc<
         assertFluidDataInsertion(event, result, state.master!.fluidData);
       }
 
-      for (const property of Object.keys(rule.style)) {
-        const call = state.funcSpies!.processProperty.calls.find(
-          (call) => call.args[0] === property && call.args[1] === rule
-        );
-        expect(call).toBeDefined();
-      }
+      expect(
+        state.funcSpies!.processProperty.calls.map((call) => [
+          call.args[0],
+          call.args[1],
+        ])
+      ).toEqual(Object.keys(rule.style).map((property) => [property, rule]));
     }),
 };
 
