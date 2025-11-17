@@ -8,10 +8,11 @@ import { fileURLToPath } from "url";
 import type { PlaywrightBlueprint, PlaywrightPage } from "./index.types";
 import { generateJSDOMDocument } from "../src/parsing/jsdom/jsonBuilder";
 import { wrapAll as wrapAllCloneDoc } from "./parsing/serialization/docCloner/goldSight";
+import { wrapAll as wrapAllDocParser } from "./parsing/parser/docParser/goldSight";
 
 console.log("GLOBAL SETUP - running once");
 wrapAllCloneDoc();
-
+wrapAllDocParser();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

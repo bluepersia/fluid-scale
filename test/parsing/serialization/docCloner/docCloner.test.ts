@@ -66,19 +66,19 @@ describe("docCloner", () => {
 
   describe("shouldIncludeStyleRule", () => {
     test("should return true if the style rule has style properties", () => {
-      const styleRuleClone = new StyleRuleClone({});
+      const styleRuleClone = new StyleRuleClone(makeDefaultGlobal());
       styleRuleClone.style = { "padding-top": "10px" };
       expect(shouldIncludeStyleRule(styleRuleClone)).toBe(true);
     });
 
     test("should return true if the style rule has special properties", () => {
-      const styleRuleClone = new StyleRuleClone({});
+      const styleRuleClone = new StyleRuleClone(makeDefaultGlobal());
       styleRuleClone.specialProps = { "padding-top": "10px" };
       expect(shouldIncludeStyleRule(styleRuleClone)).toBe(true);
     });
 
     test("should return false if the style rule has no properties", () => {
-      const styleRuleClone = new StyleRuleClone({});
+      const styleRuleClone = new StyleRuleClone(makeDefaultGlobal());
       expect(shouldIncludeStyleRule(styleRuleClone)).toBe(false);
     });
   });

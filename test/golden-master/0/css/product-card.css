@@ -1,5 +1,6 @@
 #accessible {
   --empty: "";
+  --id: 2;
 }
 
 .product-card {
