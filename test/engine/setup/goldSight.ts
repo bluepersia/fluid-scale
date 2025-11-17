@@ -5,7 +5,7 @@ let expect: ExpectStatic;
 if (process.env.NODE_ENV === "test") {
   expect = (await import("vitest")).expect;
 }
-import { addElements } from "../../../src/engine/engine";
+import { addElements, getGlobalState } from "../../../src/engine/engine";
 import { init, wrapSetup } from "../../../src/main";
 import AssertionMaster, {
   AssertionChain,
@@ -15,8 +15,19 @@ import { SerializedElement } from "../index.types";
 import { DocStruct, writeSerializedElementsToDocStruct } from "./docStruct";
 import { serializeElStates } from "../serializer";
 
-const initAssertionChain: AssertionChainForFunc<State, typeof init> = {
-  "should initialize the engine": (state, args, result) => {},
+const initAssertionChain: AssertionChain<
+  State,
+  [],
+  { allElsKeys: string[]; serializedElState: SerializedElement[] }
+> = {
+  "should initialize the engine": (state, args, result) => {
+    for (const elKey of result.allElsKeys)
+      expect(state.master!.docStruct.struct.hasOwnProperty(elKey)).toBe(true);
+
+    const docStruct = new DocStruct(state.master!.docStruct.global);
+    writeSerializedElementsToDocStruct(docStruct, result.serializedElState);
+    expect(docStruct.struct).toEqual(state.master!.docStruct.struct);
+  },
 };
 
 const addElementsAssertionChain: AssertionChain<
@@ -45,7 +56,16 @@ class SetupAssertionMaster extends AssertionMaster<State, SetupMaster> {
     return {};
   }
 
-  init = this.wrapTopFn(init, "init");
+  init = this.wrapTopFn(init, "init", {
+    resultConverter: () => {
+      const { allEls } = getGlobalState();
+      const allElsKeys = Array.from(allEls.keys()).map(
+        (el) => el.dataset.goldenId!
+      );
+      const serializedElState = serializeElStates(Array.from(allEls.values()));
+      return { allElsKeys, serializedElState };
+    },
+  });
 
   addElements = this.wrapFn(addElements, "addElements", {
     resultConverter: (result) => {
