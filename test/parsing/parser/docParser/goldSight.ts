@@ -213,13 +213,14 @@ const processSelectorInRuleAssertionChain: AssertionChainForFunc<
       }
 
       for (const property of Object.keys(rule.style)) {
-        const assertion = assertions.find(
+        const matchingAssertions = assertions.filter(
           (assertion) =>
             assertion.name === "processProperty" &&
             assertion.args[0] === property &&
-            assertion.args[1] === rule
+            assertion.args[1] === rule &&
+            assertion.args[2].selector === selector
         );
-        expect(assertion).toBeDefined();
+        expect(matchingAssertions.length).toBe(1);
       }
     }),
 };
