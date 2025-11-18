@@ -139,6 +139,12 @@ class SetupAssertionMaster extends AssertionMaster<State, SetupMaster> {
       argsConverter: (args) => {
         return [args[0], { goldenId: args[1].dataset.goldenId! }, args[2]];
       },
+      getAddress: (state, args) => {
+        return {
+          anchor: args[0],
+          goldenId: args[1].dataset.goldenId!,
+        };
+      },
     }
   );
 }
