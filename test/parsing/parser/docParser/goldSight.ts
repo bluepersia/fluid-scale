@@ -19,11 +19,13 @@ import {
   processBatches,
   processSelectorInRule,
   processProperty,
+} from "../../../../src/parsing/parser/docParser";
+import {
   seekAndInsertFluidRange,
   insertFluidRange,
   handleAutoForcedProperty,
   cloneFluidDataAt,
-} from "../../../../src/parsing/parser/docParser";
+} from "../../../../src/parsing/parser/fluidDataPatcher";
 import {
   findMediaBatchInBatchState,
   findMediaBatchInDoc,
