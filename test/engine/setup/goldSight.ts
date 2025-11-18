@@ -43,12 +43,12 @@ const initAssertionChain: AssertionChain<
   },
 };
 
-const addElementsAssertionChain: AssertionChain<
+const addElementsEngineAssertionChain: AssertionChain<
   State,
   [],
   SerializedElement[]
 > = {
-  "should add the elements": (state, args, result) => {
+  "should add the elements (engine)": (state, args, result) => {
     const docStruct = new DocStruct(state.master!.docStruct.global);
     writeSerializedElementsToDocStruct(docStruct, result);
     expect(docStruct.struct).toEqual(state.master!.docStruct.struct);
@@ -102,7 +102,7 @@ const insertFluidPropertyAssertionChain: AssertionChain<
 
 const defaultAssertions = {
   init: initAssertionChain,
-  addElements: addElementsAssertionChain,
+  addElementsEngine: addElementsEngineAssertionChain,
   insertFluidProperty: insertFluidPropertyAssertionChain,
 };
 
@@ -126,7 +126,7 @@ class SetupAssertionMaster extends AssertionMaster<State, SetupMaster> {
     },
   });
 
-  addElements = this.wrapFn(addElements, "addElements", {
+  addElementsEngine = this.wrapFn(addElements, "addElementsEngine", {
     resultConverter: (result) => {
       return serializeElStates(result);
     },
@@ -154,7 +154,7 @@ const setupAssertionMaster = new SetupAssertionMaster();
 function wrapAll() {
   wrapSetup(
     setupAssertionMaster.init,
-    setupAssertionMaster.addElements,
+    setupAssertionMaster.addElementsEngine,
     setupAssertionMaster.insertFluidProperty
   );
 }
