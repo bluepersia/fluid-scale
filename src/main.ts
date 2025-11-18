@@ -39,11 +39,13 @@ let init = (config: UserSettings) => {
 
 function wrapSetup(
   initWrapped: typeof init,
+  addElementsWrapped: typeof addElements,
   addElementsEngineWrapped: typeof addElementsEngine,
   insertFluidPropertiesForAnchorWrapped: typeof insertFluidPropertiesForAnchor
 ) {
   init = initWrapped;
+  addElements = addElementsWrapped;
   wrap(addElementsEngineWrapped, insertFluidPropertiesForAnchorWrapped);
 }
 
-export { init, wrapSetup };
+export { init, addElements, wrapSetup };

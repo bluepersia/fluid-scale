@@ -5,26 +5,18 @@ let expect: ExpectStatic;
 if (process.env.NODE_ENV === "test") {
   expect = (await import("vitest")).expect;
 }
+import { addElements } from "../../../src/main";
 import {
-  addElements,
+  addElements as addElementsEngine,
   getGlobalState,
   insertFluidPropertiesForAnchor,
 } from "../../../src/engine/engine";
 import { init, wrapSetup } from "../../../src/main";
-import AssertionMaster, {
-  AssertionChain,
-  AssertionChainForFunc,
-  filterEventsByPayload,
-  filterEventsByUUID,
-  withEvents,
-} from "gold-sight";
+import AssertionMaster, { AssertionChain } from "gold-sight";
 import { SerializedElement } from "../index.types";
 import { DocStruct, writeSerializedElementsToDocStruct } from "./docStruct";
 import { serializeElStates } from "../serializer";
-import {
-  filterEventsByName,
-  withEventNamesList,
-} from "gold-sight/dist/utils/eventBus";
+import { withEventNamesList } from "gold-sight/dist/utils/eventBus";
 import { FluidProperty } from "../../../src/index.types";
 import { AddElementsContext } from "../../../src/engine/index.types";
 
@@ -34,6 +26,21 @@ const initAssertionChain: AssertionChain<
   { allElsKeys: string[]; serializedElState: SerializedElement[] }
 > = {
   "should initialize the engine": (state, args, result) => {
+    for (const elKey of result.allElsKeys)
+      expect(state.master!.docStruct.struct.hasOwnProperty(elKey)).toBe(true);
+
+    const docStruct = new DocStruct(state.master!.docStruct.global);
+    writeSerializedElementsToDocStruct(docStruct, result.serializedElState);
+    expect(docStruct.struct).toEqual(state.master!.docStruct.struct);
+  },
+};
+
+const addElementsAssertionChain: AssertionChain<
+  State,
+  [],
+  { allElsKeys: string[]; serializedElState: SerializedElement[] }
+> = {
+  "should add the elements (main)": (state, args, result) => {
     for (const elKey of result.allElsKeys)
       expect(state.master!.docStruct.struct.hasOwnProperty(elKey)).toBe(true);
 
@@ -102,6 +109,7 @@ const insertFluidPropertyAssertionChain: AssertionChain<
 
 const defaultAssertions = {
   init: initAssertionChain,
+  addElements: addElementsAssertionChain,
   addElementsEngine: addElementsEngineAssertionChain,
   insertFluidProperty: insertFluidPropertyAssertionChain,
 };
@@ -126,7 +134,18 @@ class SetupAssertionMaster extends AssertionMaster<State, SetupMaster> {
     },
   });
 
-  addElementsEngine = this.wrapFn(addElements, "addElementsEngine", {
+  addElements = this.wrapFn(addElements, "addElements", {
+    resultConverter: (result) => {
+      const { allEls } = getGlobalState();
+      const allElsKeys = Array.from(allEls.keys()).map(
+        (el) => el.dataset.goldenId!
+      );
+      const serializedElState = serializeElStates(Array.from(allEls.values()));
+      return { allElsKeys, serializedElState };
+    },
+  });
+
+  addElementsEngine = this.wrapFn(addElementsEngine, "addElementsEngine", {
     resultConverter: (result) => {
       return serializeElStates(result);
     },
@@ -154,6 +173,7 @@ const setupAssertionMaster = new SetupAssertionMaster();
 function wrapAll() {
   wrapSetup(
     setupAssertionMaster.init,
+    setupAssertionMaster.addElements,
     setupAssertionMaster.addElementsEngine,
     setupAssertionMaster.insertFluidProperty
   );
