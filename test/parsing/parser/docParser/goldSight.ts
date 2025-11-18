@@ -19,11 +19,13 @@ import {
   processBatches,
   processSelectorInRule,
   processProperty,
+} from "../../../../src/parsing/parser/docParser";
+import {
   seekAndInsertFluidRange,
   insertFluidRange,
   handleAutoForcedProperty,
   cloneFluidDataAt,
-} from "../../../../src/parsing/parser/docParser";
+} from "../../../../src/parsing/parser/fluidDataPatcher";
 import {
   findMediaBatchInBatchState,
   findMediaBatchInDoc,
@@ -441,7 +443,15 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
 
   processSelectorInRule = this.wrapFn(
     processSelectorInRule,
-    "processSelectorInRule"
+    "processSelectorInRule",
+    {
+      getAddress: (state, args) => {
+        return {
+          selector: args[0],
+          width: args[2].width,
+        };
+      },
+    }
   );
 
   processProperty = this.wrapFn(processProperty, "processProperty", {
@@ -456,19 +466,57 @@ class DocParserAssertionMaster extends AssertionMaster<State, Master> {
 
   seekAndInsertFluidRange = this.wrapFn(
     seekAndInsertFluidRange,
-    "seekAndInsertFluidRange"
+    "seekAndInsertFluidRange",
+    {
+      getAddress: (state, args) => {
+        return {
+          selector: args[2].selector,
+          property: args[0],
+          minValue: args[1],
+          width: args[2].width,
+        };
+      },
+    }
   );
 
-  insertFluidRange = this.wrapFn(insertFluidRange, "insertFluidRange");
+  insertFluidRange = this.wrapFn(insertFluidRange, "insertFluidRange", {
+    getAddress: (state, args) => {
+      return {
+        selector: args[1].selector,
+        property: args[1].property,
+        minValue: args[1].minValue,
+        maxValue: args[1].nextValue,
+        width: args[1].width,
+        nextWidth: args[1].nextBatch.width,
+      };
+    },
+  });
 
   handleAutoForcedProperty = this.wrapFn(
     handleAutoForcedProperty,
-    "handleAutoForcedProperty"
+    "handleAutoForcedProperty",
+    {
+      getAddress: (state, args) => {
+        return {
+          selector: args[1].selector,
+          property: args[1].property,
+          value: args[1].minValue,
+          width: args[1].width,
+        };
+      },
+    }
   );
 
   cloneFluidDataAt = this.wrapFn(cloneFluidDataAt, "cloneFluidDataAt", {
     deepClone: {
       result: true,
+    },
+    getAddress: (state, args) => {
+      return {
+        anchor: args[1],
+        selector: args[2],
+        property: args[3],
+      };
     },
   });
 }

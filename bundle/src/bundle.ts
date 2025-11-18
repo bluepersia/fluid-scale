@@ -10,6 +10,15 @@ wrapAllCloneDoc();
 
 import { cloneDoc } from "../../src/parsing/serialization/docCloner";
 
+import {
+  setupAssertionMaster,
+  wrapAll as wrapAllSetup,
+} from "../../test/engine/setup/goldSight";
+
+wrapAllSetup();
+
+import { init } from "../../src/main";
+
 export {
   getQueue,
   cloneDoc,
@@ -17,4 +26,6 @@ export {
   EventBus,
   makeEventContext,
   makeDefaultGlobal,
+  setupAssertionMaster,
+  init,
 };

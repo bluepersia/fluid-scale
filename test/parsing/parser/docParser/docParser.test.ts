@@ -2,10 +2,8 @@ import { describe, test, expect } from "vitest";
 import { collection } from "./collection";
 import { assertionMaster } from "./goldSight";
 
-import {
-  parseDoc,
-  shouldStopSeeking,
-} from "../../../../src/parsing/parser/docParser";
+import { parseDoc } from "../../../../src/parsing/parser/docParser";
+import { shouldStopSeeking } from "../../../../src/parsing/parser/fluidDataPatcher";
 import { makeDefaultGlobal } from "../../../../src/utils/global";
 import { makeEventContext } from "gold-sight";
 import { RuleBatch } from "../../../../src/parsing/parser/index.types";
