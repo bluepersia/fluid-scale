@@ -86,7 +86,7 @@ let insertFluidPropertiesForAnchor = (
   el: HTMLElement,
   ctx: AddElementsContext
 ): FluidProperty[] => {
-  const { fluidData } = ctx;
+  const { fluidData, event } = ctx;
   const anchorData = fluidData.anchors[anchor];
 
   if (!anchorData) return [];
@@ -94,12 +94,23 @@ let insertFluidPropertiesForAnchor = (
   const fluidProperties: FluidProperty[] = [];
 
   for (const [selector, selectorData] of Object.entries(anchorData.selectors)) {
-    if (!el.matches(selector)) continue;
-
+    if (!el.matches(selector)) {
+      if (dev)
+        event?.emit("omitFluidPropertyInsertion", ctx, {
+          selector,
+          why: "selectorDoesNotMatch",
+        });
+      continue;
+    }
     for (const [property, propertyData] of Object.entries(
       selectorData.properties
     )) {
-      fluidProperties.push({ property, data: propertyData });
+      if (dev)
+        event?.emit("insertFluidProperty", ctx, {
+          selector,
+          property,
+        });
+      fluidProperties.push({ property, data: propertyData, selector });
     }
   }
 
@@ -127,8 +138,19 @@ let filterForcedProperties = (
   });
 };
 
-function wrap(addElementsWrapped: typeof addElements) {
+function wrap(
+  addElementsWrapped: typeof addElements,
+  insertFluidPropertiesForAnchorWrapped: typeof insertFluidPropertiesForAnchor
+) {
   addElements = addElementsWrapped;
+  insertFluidPropertiesForAnchor = insertFluidPropertiesForAnchorWrapped;
 }
 
-export { getGlobalState, addElements, resetState, initEngineState, wrap };
+export {
+  getGlobalState,
+  addElements,
+  resetState,
+  initEngineState,
+  wrap,
+  insertFluidPropertiesForAnchor,
+};

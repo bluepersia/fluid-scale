@@ -1,4 +1,9 @@
-import { getGlobalState, initEngineState, wrap } from "./engine/engine";
+import {
+  getGlobalState,
+  initEngineState,
+  insertFluidPropertiesForAnchor,
+  wrap,
+} from "./engine/engine";
 import type { Global, UserSettings } from "./index.types";
 import { parseDoc } from "./parsing/parser/docParser";
 import { cloneDoc } from "./parsing/serialization/docCloner";
@@ -34,10 +39,11 @@ let init = (config: UserSettings) => {
 
 function wrapSetup(
   initWrapped: typeof init,
-  addElementsEngineWrapped: typeof addElementsEngine
+  addElementsEngineWrapped: typeof addElementsEngine,
+  insertFluidPropertiesForAnchorWrapped: typeof insertFluidPropertiesForAnchor
 ) {
   init = initWrapped;
-  wrap(addElementsEngineWrapped);
+  wrap(addElementsEngineWrapped, insertFluidPropertiesForAnchorWrapped);
 }
 
 export { init, wrapSetup };

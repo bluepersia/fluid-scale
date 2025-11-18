@@ -47,6 +47,7 @@ type FluidValueSingle = {
 type FluidProperty = {
   property: string;
   data: PropertyData;
+  selector: string;
 };
 
 export { STYLE_RULE_TYPE, MEDIA_RULE_TYPE };

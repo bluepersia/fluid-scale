@@ -24,6 +24,7 @@ class DocStruct {
     const newFluidProperty: FluidProperty = {
       property: "",
       data: new ctor(this.#global),
+      selector: "",
     };
     this.struct[goldenId].push(newFluidProperty);
     return newFluidProperty;
@@ -42,6 +43,7 @@ function writeSerializedElementsToDocStruct(
       const newFluidProperty: FluidProperty = {
         property: fluidProperty.property,
         data: fluidProperty.data,
+        selector: fluidProperty.selector,
       };
       newFluidProperty.data.metaData.orderID = -1;
       elData.push(newFluidProperty);

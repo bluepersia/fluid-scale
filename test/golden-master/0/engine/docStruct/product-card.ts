@@ -8,6 +8,7 @@ function writeProductCard(docStruct: DocStruct) {
 
   property = docStruct.addFluidProperty("product-card", RangedPropertyData);
   property.property = "max-width";
+  property.selector = ".product-card";
   property.data =
     fluidData.anchors[".product-card"].selectors[".product-card"].properties[
       "max-width"
@@ -15,6 +16,7 @@ function writeProductCard(docStruct: DocStruct) {
 
   property = docStruct.addFluidProperty("product-card", RangedPropertyData);
   property.property = "border-bottom-right-radius";
+  property.selector = ".product-card";
   property.data =
     fluidData.anchors[".product-card"].selectors[".product-card"].properties[
       "border-bottom-right-radius"
@@ -25,6 +27,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "padding-top";
+  property.selector = ".product-card__content";
   property.data =
     fluidData.anchors[".product-card__content"].selectors[
       ".product-card__content"
@@ -35,6 +38,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "padding-right";
+  property.selector = ".product-card__content";
   property.data =
     fluidData.anchors[".product-card__content"].selectors[
       ".product-card__content"
@@ -45,6 +49,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "padding-bottom";
+  property.selector = ".product-card__content";
   property.data =
     fluidData.anchors[".product-card__content"].selectors[
       ".product-card__content"
@@ -55,6 +60,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "padding-left";
+  property.selector = ".product-card__content";
   property.data =
     fluidData.anchors[".product-card__content"].selectors[
       ".product-card__content"
@@ -65,6 +71,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "margin-bottom";
+  property.selector = ".product-card__category";
   property.data =
     fluidData.anchors[".product-card__category"].selectors[
       ".product-card__category"
@@ -75,6 +82,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "margin-bottom";
+  property.selector = ".product-card__title";
   property.data =
     fluidData.anchors[".product-card__title"].selectors[
       ".product-card__title"
@@ -85,6 +93,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "margin-bottom";
+  property.selector = ".product-card__description";
   property.data =
     fluidData.anchors[".product-card__description"].selectors[
       ".product-card__description"
@@ -95,6 +104,7 @@ function writeProductCard(docStruct: DocStruct) {
     RangedPropertyData
   );
   property.property = "margin-top";
+  property.selector = ".product-card__button";
   property.data =
     fluidData.anchors[".product-card__button"].selectors[
       ".product-card__button"
